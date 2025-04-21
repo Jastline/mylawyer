@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../resources/styles.dart';  // Импортируем файл стилей
 import '../models/test_model.dart';
 
 class TestDetailScreen extends StatefulWidget {
@@ -19,14 +20,14 @@ class _TestDetailScreenState extends State<TestDetailScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('Вопрос')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: defaultPadding,  // Используем стандартный отступ
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Вопрос
             Text(
               widget.test.question,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: questionTextStyle,
             ),
             SizedBox(height: 20),
 
@@ -38,22 +39,17 @@ class _TestDetailScreenState extends State<TestDetailScreen> {
               // Определяем цвета и стили
               Color backgroundColor = Colors.transparent;
               Color borderColor = Colors.grey;
-              IconData? icon;
-              Color iconColor = Colors.grey; // Инициализируем значением по умолчанию
+              Icon answerIcon = defaultAnswerIcon;
 
               if (_isAnswered) {
                 if (isCorrect) {
-                  // Правильный ответ (подсвечиваем в любом случае)
-                  backgroundColor = Colors.green.withAlpha(25); // Эквивалент withOpacity(0.1)
-                  borderColor = Colors.green;
-                  icon = Icons.check_circle;
-                  iconColor = Colors.green;
+                  backgroundColor = correctAnswerColor.withAlpha(25);
+                  borderColor = correctAnswerColor;
+                  answerIcon = correctAnswerIcon;
                 } else if (isSelected) {
-                  // Выбран неправильный ответ
-                  backgroundColor = Colors.red.withAlpha(25); // Эквивалент withOpacity(0.1)
-                  borderColor = Colors.red;
-                  icon = Icons.cancel;
-                  iconColor = Colors.red;
+                  backgroundColor = incorrectAnswerColor.withAlpha(25);
+                  borderColor = incorrectAnswerColor;
+                  answerIcon = incorrectAnswerIcon;
                 }
               }
 
@@ -68,16 +64,13 @@ class _TestDetailScreenState extends State<TestDetailScreen> {
                   contentPadding: EdgeInsets.symmetric(horizontal: 16),
                   title: Text(
                     widget.test.options[index],
-                    style: TextStyle(
-                      fontSize: 16,
+                    style: answerTextStyle.copyWith(
                       color: isSelected && !isCorrect && _isAnswered
-                          ? Colors.red
+                          ? incorrectAnswerColor
                           : Colors.black,
                     ),
                   ),
-                  leading: _isAnswered && icon != null
-                      ? Icon(icon, color: iconColor)
-                      : Icon(Icons.circle_outlined, color: Colors.grey),
+                  leading: _isAnswered ? answerIcon : defaultAnswerIcon,
                   onTap: _isAnswered
                       ? null
                       : () {
@@ -95,17 +88,17 @@ class _TestDetailScreenState extends State<TestDetailScreen> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withAlpha(25), // Эквивалент withOpacity(0.1)
+                color: primaryColor.withAlpha(25),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.article, color: Colors.blue),
+                  Icon(Icons.article, color: primaryColor),
                   SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       'Ссылка на закон: ${widget.test.lawReference}',
-                      style: TextStyle(fontSize: 16),
+                      style: lawReferenceTextStyle,
                     ),
                   ),
                 ],
@@ -121,7 +114,7 @@ class _TestDetailScreenState extends State<TestDetailScreen> {
                     icon: Icon(Icons.arrow_back),
                     label: Text('Назад к тестам'),
                     style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: buttonPadding,  // Используем стандартный padding
                     ),
                     onPressed: () => Navigator.pop(context),
                   ),
