@@ -5,8 +5,8 @@ class LawsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Здесь будут законы'),
+    return Center(
+      child: Text('Раздел законов (в разработке)', style: TextStyle(fontSize: 18)),
     );
   }
 }

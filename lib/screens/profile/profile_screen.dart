@@ -5,8 +5,8 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: Text('Профиль пользователя'),
+    return Center(
+      child: Text('Профиль пользователя (в разработке)', style: TextStyle(fontSize: 18)),
     );
   }
 }
