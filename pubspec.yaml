@@ -5,18 +5,47 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-  flutter: '>=3.19.0'  # Добавьте минимальную версию Flutter
+  flutter: '>=3.19.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  sqflite: ^2.3.0  # Обновите до последней стабильной версии
-  path: ^1.8.3    # Обновите до последней версии
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  google_fonts: ^3.0.1  # Оставляем для fallback
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0  # Добавьте актуальную версию lints
+  flutter_lints: ^3.0.0
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/fonts/  # Добавляем всю папку fonts
+  fonts:
+    - family: EB Garamond
+      fonts:
+        - asset: assets/fonts/EBGaramond-Regular.ttf
+        - asset: assets/fonts/EBGaramond-Italic.ttf
+          style: italic
+        - asset: assets/fonts/EBGaramond-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/EBGaramond-MediumItalic.ttf
+          weight: 500
+          style: italic
+        - asset: assets/fonts/EBGaramond-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/EBGaramond-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: assets/fonts/EBGaramond-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/EBGaramond-BoldItalic.ttf
+          weight: 700
+          style: italic
+        - asset: assets/fonts/EBGaramond-ExtraBold.ttf
+          weight: 800
+        - asset: assets/fonts/EBGaramond-ExtraBoldItalic.ttf
+          weight: 800
+          style: italic

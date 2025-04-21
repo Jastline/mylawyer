@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'data/db_helper.dart';
 import 'models/test_model.dart';
 import 'screens/test_detail_screen.dart';
+import 'resources/app_theme.dart';
 
 
 void main() async {
@@ -16,6 +17,12 @@ void main() async {
       correctIndex: 0,
       lawReference: 'ст. 17 ГК РФ',
     ));
+    await db.insertTest(TestModel(
+      question: 'Когда возникает дееспособность?',
+      options: ['С рождения', 'С 14 лет', 'С 18 лет'],
+      correctIndex: 2,
+      lawReference: 'ст. 21 ГК РФ',
+    ));
   }
 
   runApp(MyApp());
@@ -26,7 +33,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MyLawyer',
-      theme: ThemeData(primarySwatch: Colors.indigo),
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light,
       home: TestsScreen(),
     );
   }
