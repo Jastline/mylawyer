@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/test_model.dart';
-import '../resources/app_colors.dart';
-import '../resources/app_text_styles.dart';
+import '../../models/test_model.dart';
+import '../../resources/app_colors.dart';
+import '../../resources/app_text_styles.dart';
 
 class TestDetailScreen extends StatefulWidget {
   final TestModel test;

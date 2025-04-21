@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/test_model.dart';
-import '../resources/app_colors.dart';
-import '../resources/app_text_styles.dart';
-import '../data/db_helper.dart';
+import '../../models/test_model.dart';
+import '../../resources/app_colors.dart';
+import '../../resources/app_text_styles.dart';
+import '../../data/db_helper.dart';
+//import '../screens/add_test_screen.dart';
 import 'test_detail_screen.dart';
 
 class TestsScreen extends StatefulWidget {
@@ -48,6 +49,16 @@ class _TestsScreenState extends State<TestsScreen> {
           : _tests.isEmpty
           ? _buildEmptyState()
           : _buildTestsList(),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     final result = await Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (_) => const AddTestScreen()),
+      //     );
+      //     if (result == true) {
+      //       _loadTests(); // перезагружаем тесты после добавления
+      //     }
+      //   },
       floatingActionButton: FloatingActionButton(
         onPressed: () {}, // TODO: Добавить создание теста
         backgroundColor: AppColors.primary,
@@ -55,6 +66,7 @@ class _TestsScreenState extends State<TestsScreen> {
       ),
     );
   }
+
 
   Widget _buildEmptyState() {
     return Center(
