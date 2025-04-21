@@ -1,7 +1,8 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../models/test_model.dart';
-import '../models/law_article.dart'; // 👈 Добавь это
+import '../models/law_article.dart';
+import '../models/user_profile.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -20,7 +21,7 @@ class DBHelper {
     final path = await getDatabasesPath();
     return openDatabase(
       join(path, 'mylawyer.db'),
-      version: 3, // Увеличена версия для корректного обновления
+      version: 4, // Увеличена версия для добавления профиля
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tests (
@@ -42,6 +43,19 @@ class DBHelper {
             content TEXT
           )
         ''');
+
+        await db.execute('''
+          CREATE TABLE profiles (
+            id TEXT PRIMARY KEY,
+            name TEXT,
+            avatarPath TEXT,
+            totalLawsRead INTEGER,
+            testsCompleted INTEGER,
+            lawsByCategory TEXT,
+            timeSpent TEXT,
+            achievements TEXT
+          )
+        ''');
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -55,7 +69,6 @@ class DBHelper {
           ''');
         }
         if (oldVersion < 3) {
-          // Создаем временную таблицу с новой структурой
           await db.execute('''
             CREATE TABLE laws_new (
               id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,23 +79,34 @@ class DBHelper {
               content TEXT
             )
           ''');
-          // Переносим данные из старой таблицы
+
           final oldLaws = await db.query('laws');
           for (var law in oldLaws) {
             await db.insert('laws_new', {
-              'code': '', // значение по умолчанию
-              'articleNumber': '', // значение по умолчанию
+              'code': '',
+              'articleNumber': '',
               'title': law['title'],
               'content': law['content'],
               'chapter': law['chapter'],
             });
           }
 
-          // Удаляем старую таблицу
           await db.execute('DROP TABLE laws');
-
-          // Переименовываем новую таблицу
           await db.execute('ALTER TABLE laws_new RENAME TO laws');
+        }
+        if (oldVersion < 4) {
+          await db.execute('''
+            CREATE TABLE profiles (
+              id TEXT PRIMARY KEY,
+              name TEXT,
+              avatarPath TEXT,
+              totalLawsRead INTEGER,
+              testsCompleted INTEGER,
+              lawsByCategory TEXT,
+              timeSpent TEXT,
+              achievements TEXT
+            )
+          ''');
         }
       },
     );
@@ -122,15 +146,21 @@ class DBHelper {
     return maps.map((map) => LawArticle.fromMap(map)).toList();
   }
 
-  Future<LawArticle?> getLawByTitle(String title) async {
+  // ------- PROFILE -------
+  Future<int> saveProfile(UserProfile profile) async {
     final db = await database;
-    final maps = await db.query(
-      'laws',
-      where: 'title = ?',
-      whereArgs: [title],
+    return db.insert(
+      'profiles',
+      profile.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
     );
+  }
+
+  Future<UserProfile?> getProfile() async {
+    final db = await database;
+    final maps = await db.query('profiles', limit: 1);
     if (maps.isNotEmpty) {
-      return LawArticle.fromMap(maps.first);
+      return UserProfile.fromMap(maps.first);
     }
     return null;
   }

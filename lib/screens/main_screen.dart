@@ -13,10 +13,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    TestsScreen(),
+  final List<Widget> _screens = [
+    //HomeScreen(),
     LawsScreen(),
-    ProfileScreen(),
+    TestsScreen(),
+    ProfileScreen(), // Все экраны будут иметь доступ к Provider
   ];
 
   @override
@@ -27,8 +28,9 @@ class _MainScreenState extends State<MainScreen> {
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
+          //BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Главная'),
+          BottomNavigationBarItem(icon: Icon(Icons.gavel), label: 'Законы'),
           BottomNavigationBarItem(icon: Icon(Icons.quiz), label: 'Тесты'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Законы'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
         ],
       ),

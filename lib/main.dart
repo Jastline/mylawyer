@@ -1,19 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'data/db_helper.dart';
 import 'models/test_model.dart';
 import 'models/law_article.dart';
 import 'resources/app_theme.dart';
 import 'screens/main_screen.dart';
+import 'services/profile_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final db = DBHelper();
 
-  // Инициализация тестовых данных
+  final profileService = ProfileService(db); // ← это нужно
   await _initializeTestData(db);
   await _initializeLawData(db);
+  await profileService.loadProfile();
 
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => profileService,
+      child: const MyApp(),
+    ),
+  );
 }
 
 Future<void> _initializeTestData(DBHelper db) async {
