@@ -10,8 +10,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  sqflite: ^2.4.2  # Обновите до последней стабильной версии
-  path: ^1.9.1     # Обновите до последней версии
+  sqflite: ^2.3.0  # Обновите до последней стабильной версии
+  path: ^1.8.3    # Обновите до последней версии
 
 dev_dependencies:
   flutter_test:
