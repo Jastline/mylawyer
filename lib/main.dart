@@ -1,85 +1,88 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'data/db_helper.dart';
-import 'models/test_model.dart';
-import 'models/law_article.dart';
+import 'models/test.dart';
 import 'resources/app_theme.dart';
 import 'screens/main_screen.dart';
 import 'services/profile_service.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final db = DBHelper();
 
-  final profileService = ProfileService(db); // ← это нужно
-  await _initializeTestData(db);
-  await _initializeLawData(db);
-  await profileService.loadProfile();
+  try {
+    // Инициализация базы данных (из assets)
+    final db = DBHelper();
+    await db.initializeDatabase();
 
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => profileService,
-      child: const MyApp(),
-    ),
-  );
-}
+    // Инициализация сервиса профиля
+    final profileService = ProfileService(db);
+    await profileService.loadProfile();
 
-Future<void> _initializeTestData(DBHelper db) async {
-  final existingTests = await db.getAllTests();
-  if (existingTests.isEmpty) {
-    await db.insertTest(TestModel(
-      question: 'Что такое правоспособность?',
-      options: [
-        'Способность иметь права',
-        'Способность их исполнять',
-        'Обязанность соблюдать закон'
-      ],
-      correctIndex: 0,
-      lawReference: 'ст. 17 ГК РФ',
-    ));
-    await db.insertTest(TestModel(
-      question: 'Когда возникает дееспособность?',
-      options: ['С рождения', 'С 14 лет', 'С 18 лет'],
-      correctIndex: 2,
-      lawReference: 'ст. 21 ГК РФ',
-    ));
+    // Инициализация тестовых данных, если их нет
+    await _initializeTestData(db);
+
+    runApp(
+      ChangeNotifierProvider(
+        create: (_) => profileService,
+        child: const MyApp(),
+      ),
+    );
+  } catch (e) {
+    debugPrint('Ошибка инициализации приложения: $e');
+    runApp(
+      const MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Text('Произошла ошибка при запуске приложения'),
+          ),
+        ),
+      ),
+    );
   }
 }
 
-Future<void> _initializeLawData(DBHelper db) async {
-  final existingArticles = await db.getAllLaws();
-  if (existingArticles.isEmpty) {
-    final laws = [
-      LawArticle(
-        id: 0,
-        code: 'ГК РФ',
-        chapter: 'Глава 3. Гражданская правоспособность',
-        articleNumber: 'ст. 17',
-        title: 'Гражданская правоспособность',
-        content: 'Правоспособность гражданина возникает в момент его рождения и прекращается смертью.',
-      ),
-      LawArticle(
-        id: 1,
-        code: 'ГК РФ',
-        chapter: 'Глава 3. Гражданская правоспособность',
-        articleNumber: 'ст. 18',
-        title: 'Имущественные права',
-        content: 'Гражданин может иметь имущество на праве собственности, наследовать и завещать его...',
-      ),
-      LawArticle(
-        id: 2,
-        code: 'ГК РФ',
-        chapter: 'Глава 4. Гражданская дееспособность',
-        articleNumber: 'ст. 21',
-        title: 'Полная дееспособность',
-        content: 'Полная дееспособность наступает по достижении 18 лет.',
-      ),
+Future<void> _initializeTestData(DBHelper db) async {
+  try {
+    final existingTests = await db.getAllTests();
+    if (existingTests.isNotEmpty) return;
+
+    const testData = [
+      {
+        'question': 'Что такое правоспособность?',
+        'options': [
+          'Способность иметь права',
+          'Способность их исполнять',
+          'Обязанность соблюдать закон'
+        ],
+        'correctIndex': 0,
+        'articleReference': 'ст. 17 ГК РФ',
+        'legalArea': 'Гражданское право',
+        'difficulty': 'Легкая',
+        'explanation': 'Правоспособность – это способность иметь гражданские права.',
+        'isCompleted': false,
+        'completedAt': null,
+        'timeLimitSeconds': 60,
+      },
     ];
 
-    for (final law in laws) {
-      await db.insertLaw(law);
+    for (final test in testData) {
+      await db.insertTest(TestModel(
+        question: test['question'] as String,
+        options: (test['options'] as List).cast<String>(),
+        correctIndex: test['correctIndex'] as int,
+        articleReference: test['articleReference'] as String,
+        legalArea: test['legalArea'] as String,
+        difficulty: test['difficulty'] as String,
+        explanation: test['explanation'] as String,
+        isCompleted: test['isCompleted'] as bool,
+        completedAt: test['completedAt'] != null
+            ? DateTime.parse(test['completedAt'] as String)
+            : null,
+        timeLimitSeconds: test['timeLimitSeconds'] as int,
+      ));
     }
+  } catch (e) {
+    debugPrint('Ошибка инициализации тестов: $e');
   }
 }
 

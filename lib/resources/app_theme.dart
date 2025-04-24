@@ -3,47 +3,47 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static TextTheme _buildTextTheme(Color textColor) {
     return TextTheme(
-      displayLarge: const TextStyle(
+      displayLarge: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 32,
         fontWeight: FontWeight.w800,
-        color: Colors.black87,
+        color: textColor,
       ),
-      displayMedium: const TextStyle(
+      displayMedium: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 28,
         fontWeight: FontWeight.w700,
-        color: Colors.black87,
+        color: textColor,
       ),
-      titleLarge: const TextStyle(
+      titleLarge: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 22,
         fontWeight: FontWeight.w600,
-        color: Colors.black87,
+        color: textColor,
       ),
-      titleMedium: const TextStyle(
+      titleMedium: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 18,
         fontWeight: FontWeight.w500,
-        color: Colors.black87,
+        color: textColor,
       ),
-      bodyLarge: const TextStyle(
+      bodyLarge: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 16,
         fontWeight: FontWeight.normal,
-        color: Colors.black87,
+        color: textColor,
       ),
-      bodyMedium: const TextStyle(
+      bodyMedium: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 14,
         fontWeight: FontWeight.normal,
-        color: Colors.black87,
+        color: textColor,
       ),
-      labelLarge: const TextStyle(
+      labelLarge: TextStyle(
         fontFamily: 'EB Garamond',
         fontSize: 14,
         fontWeight: FontWeight.w500,
-        color: Colors.black87,
+        color: textColor,
       ),
     );
   }
@@ -54,6 +54,7 @@ class AppTheme {
       primary: Color(0xFF1A237E),
       secondary: Color(0xFF303F9F),
       surface: Colors.white,
+      onSurface: Colors.black87,
     ),
     scaffoldBackgroundColor: const Color(0xFFF5F5F5),
     textTheme: _buildTextTheme(Colors.black87),
@@ -68,12 +69,18 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardTheme(
       elevation: 2,
       margin: EdgeInsets.all(10),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Color(0xFF1A237E),
+    ),
+    buttonTheme: const ButtonThemeData(
+      buttonColor: Color(0xFF303F9F),
     ),
   );
 
@@ -83,6 +90,7 @@ class AppTheme {
       primary: Color(0xFF7986CB),
       secondary: Color(0xFF5C6BC0),
       surface: Color(0xFF121212),
+      onSurface: Colors.white70,
     ),
     scaffoldBackgroundColor: const Color(0xFF121212),
     textTheme: _buildTextTheme(Colors.white70),
@@ -97,13 +105,19 @@ class AppTheme {
         color: Colors.white,
       ),
     ),
-    cardTheme: CardTheme(
+    cardTheme: const CardTheme(
       elevation: 2,
       margin: EdgeInsets.all(10),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.all(Radius.circular(8)),
       ),
       color: Color(0xFF1E1E1E),
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: Color(0xFF7986CB),
+    ),
+    buttonTheme: const ButtonThemeData(
+      buttonColor: Color(0xFF5C6BC0),
     ),
   );
 }

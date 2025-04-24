@@ -26,6 +26,7 @@ flutter:
   assets:
     - assets/images/default_avatar.png
     - assets/fonts/  # Добавляем всю папку fonts
+    - assets/database/test_rus_law_database.db
   fonts:
     - family: EB Garamond
       fonts:
