@@ -9,68 +9,82 @@ class AppTextStyles {
     color: Colors.white,
   );
 
-  static const TextStyle title = TextStyle(
+  static TextStyle title(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 24,
     fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
+    color: AppColors.onBackground(context),
+    letterSpacing: 0.15,
   );
 
-  static const TextStyle subtitle = TextStyle(
+  static TextStyle subtitle(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 16,
     fontWeight: FontWeight.normal,
-    color: AppColors.textSecondary,
+    color: AppColors.onSurface(context),
+    height: 1.5,
   );
 
-  static const TextStyle question = TextStyle(
-    fontFamily: 'EB Garamond',
-    fontSize: 18,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle answer = TextStyle(
-    fontFamily: 'EB Garamond',
-    fontSize: 16,
-    fontWeight: FontWeight.normal,
-    color: AppColors.textPrimary,
-  );
-
-  static const TextStyle sectionTitle = TextStyle(
+  static TextStyle sectionTitle(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 20,
     fontWeight: FontWeight.w600,
-    color: AppColors.primary,
+    color: AppColors.primary(context),
     letterSpacing: 0.5,
   );
 
-  static const TextStyle lawTitle = TextStyle(
+  static TextStyle lawTitle(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 16,
     fontWeight: FontWeight.w600,
     fontStyle: FontStyle.italic,
-    color: AppColors.lawText,
+    color: AppColors.onSurface(context),
+    height: 1.4,
   );
 
-  static const TextStyle lawReference = TextStyle(
+  static TextStyle lawReference(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 15,
     fontWeight: FontWeight.w500,
-    color: AppColors.lawText,
+    color: AppColors.onSurface(context).withValues(alpha: 0.8),
   );
 
-  static const TextStyle lawExplanation = TextStyle(
+  static TextStyle lawExplanation(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 14,
     fontWeight: FontWeight.normal,
-    color: AppColors.textPrimary,
+    color: AppColors.onBackground(context),
+    height: 1.6,
   );
 
-  static const TextStyle optionsCount = TextStyle(
+  static TextStyle optionsCount(BuildContext context) => TextStyle(
     fontFamily: 'EB Garamond',
     fontSize: 12,
     fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
+    color: AppColors.onSurface(context).withValues(alpha: 0.6),
+  );
+
+  static TextStyle question(BuildContext context) => TextStyle(
+    fontFamily: 'EB Garamond',
+    fontSize: 18,
+    fontWeight: FontWeight.w500,
+    color: AppColors.onBackground(context),
+    height: 1.4,
+  );
+
+  static TextStyle answer(BuildContext context) => TextStyle(
+    fontFamily: 'EB Garamond',
+    fontSize: 16,
+    fontWeight: FontWeight.normal,
+    color: AppColors.onBackground(context),
+    height: 1.6,
+  );
+
+  static TextStyle buttonText(BuildContext context) => TextStyle(
+    fontFamily: 'EB Garamond',
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    color: Colors.white,
+    letterSpacing: 0.5,
   );
 }
