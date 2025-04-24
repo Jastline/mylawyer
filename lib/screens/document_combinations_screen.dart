@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../resources/app_text_styles.dart';
 import '../resources/app_colors.dart';
 
-class FilterSetsScreen extends StatefulWidget {
-  const FilterSetsScreen({super.key});
+class DocumentCombinationsScreen extends StatefulWidget {
+  const DocumentCombinationsScreen({super.key});
 
   @override
-  State<FilterSetsScreen> createState() => _FilterSetsScreenState();
+  State<DocumentCombinationsScreen> createState() => _DocumentCombinationsScreen();
 }
 
-class _FilterSetsScreenState extends State<FilterSetsScreen> with SingleTickerProviderStateMixin {
+class _DocumentCombinationsScreen extends State<DocumentCombinationsScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -62,13 +62,14 @@ class _FilterSetsScreenState extends State<FilterSetsScreen> with SingleTickerPr
           Expanded(child: _buildFilterSetList(context)),
           const SizedBox(height: 16),
           ElevatedButton(
-            onPressed: () {
-              // Логика загрузки по наборам
-            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.primary,
               foregroundColor: Theme.of(context).colorScheme.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             ),
+            onPressed: () {
+              // Логика загрузки по наборам
+            },
             child: const Text('Загрузить'),
           ),
         ],
@@ -84,24 +85,53 @@ class _FilterSetsScreenState extends State<FilterSetsScreen> with SingleTickerPr
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
-          children: const [
-            FilterChip(label: Text('Основные'), selected: false, onSelected: null),
-            FilterChip(label: Text('Дополнительные'), selected: false, onSelected: null),
-            FilterChip(label: Text('ФЗ'), selected: false, onSelected: null),
-            FilterChip(label: Text('Указы'), selected: false, onSelected: null),
+          children: [
+            FilterChip(
+              label: const Text('Основные'),
+              selected: false,
+              onSelected: (_) {},
+              selectedColor: AppColors.selectedFilterBackground(context),
+              backgroundColor: AppColors.unselectedFilterBackground(context),
+              labelStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
+            FilterChip(
+              label: const Text('Дополнительные'),
+              selected: false,
+              onSelected: (_) {},
+              selectedColor: AppColors.selectedFilterBackground(context),
+              backgroundColor: AppColors.unselectedFilterBackground(context),
+              labelStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
+            FilterChip(
+              label: const Text('ФЗ'),
+              selected: false,
+              onSelected: (_) {},
+              selectedColor: AppColors.selectedFilterBackground(context),
+              backgroundColor: AppColors.unselectedFilterBackground(context),
+              labelStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
+            FilterChip(
+              label: const Text('Указы'),
+              selected: false,
+              onSelected: (_) {},
+              selectedColor: AppColors.selectedFilterBackground(context),
+              backgroundColor: AppColors.unselectedFilterBackground(context),
+              labelStyle: Theme.of(context).textTheme.bodyMedium,
+            ),
           ],
         ),
         const SizedBox(height: 8),
         Text('Годы: 2000 – 2005', style: TextStyle(fontSize: 14, color: AppColors.onSurface(context))),
         const SizedBox(height: 4),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            foregroundColor: Theme.of(context).colorScheme.onPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          ),
           onPressed: () {
             // Добавить набор
           },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary(context),
-            //foregroundColor: AppColors.onPrimary(context),
-          ),
           child: const Text('Добавить набор'),
         ),
       ],

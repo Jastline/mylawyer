@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../resources/app_text_styles.dart';
-import '../resources/app_colors.dart';
 import '../widgets/theme_provider.dart';
+import '../resources/app_colors.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import 'document_combinations_screen.dart';
 import 'document_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,17 +17,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0; // Индекс текущего экрана
-  final List<String> _titles = ['Главная', 'Профиль', 'Настройки']; // Список заголовков для вкладок
+  int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
-    HomeScreenContent(),  // Главный экран с фильтрами и документами
-    ProfileScreen(),      // Экран профиля
-    SettingsScreen(),     // Экран настроек
+    HomeScreenContent(),
+    DocumentCombinationsScreen(),
+    ProfileScreen(),
+    SettingsScreen(),
+  ];
+
+  final List<String> _titles = [
+    'Главная',
+    'Загрузка',
+    'Профиль',
+    'Настройки',
   ];
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: Text(_titles[_selectedIndex], style: AppTextStyles.appBarTitle),
@@ -34,7 +43,8 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.brightness_6, color: Colors.white),
             onPressed: () {
-              final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+              final themeProvider =
+              Provider.of<ThemeProvider>(context, listen: false);
               themeProvider.toggleTheme();
             },
           ),
@@ -43,15 +53,20 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _selectedIndex = index),
+        selectedItemColor: isDark ? Colors.lightBlueAccent : Colors.indigo,
+        unselectedItemColor: isDark ? Colors.white54 : Colors.black54,
+        backgroundColor:
+        isDark ? const Color(0xFF2A2A3C) : const Color(0xFFF5F5F5),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),
             label: 'Главная',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.download_rounded),
+            label: 'Загрузка',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -66,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 
 class HomeScreenContent extends StatelessWidget {
   const HomeScreenContent({super.key});
@@ -85,6 +101,11 @@ class HomeScreenContent extends StatelessWidget {
           const SizedBox(height: 20),
           Center(
             child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              ),
               onPressed: () {
                 // Заглушка: логика загрузки документов
               },
