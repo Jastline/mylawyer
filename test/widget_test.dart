@@ -1,23 +1,27 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
 import 'package:mylawyer/main.dart';
+import 'package:mylawyer/widgets/theme_provider.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(MyApp());
+  testWidgets('Загрузка документов кнопка проверка', (WidgetTester tester) async {
+    final themeProvider = ThemeProvider();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Загрузка темы из базы данных (или устанавливаем светлую тему вручную)
+    await themeProvider.loadThemeFromDB(); // можно заменить на вручную установку: themeProvider._themeMode = ThemeMode.light;
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
+    // Разворачиваем приложение с переданным themeProvider
+    await tester.pumpWidget(MyApp(themeProvider: themeProvider));
+
+    // Проверяем, что кнопка с текстом 'Загрузить документы' существует на экране
+    expect(find.text('Загрузить документы'), findsOneWidget);
+
+    // Нажимаем на кнопку
+    await tester.tap(find.text('Загрузить документы'));
     await tester.pump();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Проверяем, что после нажатия происходит какое-то действие (например, открытие нового экрана).
+    // Для этого можно добавить проверку, что на экране появился новый виджет или изменился состояние.
+    // Например, если открывается новый экран, можно проверять его наличие:
+    // expect(find.byType(YourNewScreen), findsOneWidget);
   });
 }

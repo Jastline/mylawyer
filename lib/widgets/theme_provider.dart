@@ -1,24 +1,30 @@
 import 'package:flutter/material.dart';
-import '../resources/app_theme.dart'; // не забудь про импорт
+import '../services/user_db_service.dart';
+import '../resources/app_theme.dart';
 
 class ThemeProvider extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.light;  // Принудительно задаём светлую тему
+  ThemeMode _themeMode = ThemeMode.light;
 
   ThemeMode get themeMode => _themeMode;
 
-  void setTheme(ThemeMode mode) {
-    _themeMode = mode;
+  Future<void> loadThemeFromDB() async {
+    final isLight = await UserDatabaseService().getUserTheme(); // true or false
+    _themeMode = isLight ? ThemeMode.light : ThemeMode.dark;
     notifyListeners();
   }
 
-  void toggleTheme() {
-    // Изменение темы
-    _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+  Future<void> toggleTheme() async {
+    final isCurrentlyDark = _themeMode == ThemeMode.dark;
+    _themeMode = isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
     notifyListeners();
+    await UserDatabaseService().updateUserTheme(!_themeMode.isDarkMode); // light == const
   }
 
-  ThemeData get themeData {
-    // Возвращаем тему в зависимости от выбранного режима
-    return _themeMode == ThemeMode.dark ? AppTheme.darkTheme : AppTheme.lightTheme;
-  }
+  ThemeData get themeData => _themeMode == ThemeMode.dark
+      ? AppTheme.darkTheme
+      : AppTheme.lightTheme;
+}
+
+extension on ThemeMode {
+  bool get isDarkMode => this == ThemeMode.dark;
 }
