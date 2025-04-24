@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../resources/app_text_styles.dart';
 import '../widgets/theme_provider.dart';
@@ -34,6 +35,46 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showDisclaimerIfFirstTime(context);
+    });
+  }
+
+  Future<void> _showDisclaimerIfFirstTime(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyShown = prefs.getBool('disclaimer_shown') ?? false;
+
+    if (!alreadyShown) {
+      await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => AlertDialog(
+          title: const Text('Внимание!'),
+          content: const Text(
+            'В приложении используются юридические документы РФ 1991–2023 годов. '
+                'Мы не гарантируем их абсолютную актуальность и полноту. '
+                'Приложение не является юридической консультацией и не несёт ответственности '
+                'за последствия, связанные с использованием информации.\n\n'
+                'Нажимая "Принять", вы соглашаетесь с этими условиями.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Принять'),
+            ),
+          ],
+        ),
+      );
+
+      await prefs.setBool('disclaimer_shown', true);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
@@ -41,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(_titles[_selectedIndex], style: AppTextStyles.appBarTitle),
         actions: [
           IconButton(
-            icon: Icon(Icons.brightness_6, color: Colors.white),
+            icon: const Icon(Icons.brightness_6, color: Colors.white),
             onPressed: () {
               final themeProvider =
               Provider.of<ThemeProvider>(context, listen: false);
@@ -81,6 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
+
 
 
 class HomeScreenContent extends StatelessWidget {

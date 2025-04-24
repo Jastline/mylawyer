@@ -26,20 +26,22 @@ class _DocumentCombinationsScreen extends State<DocumentCombinationsScreen> with
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Наборы фильтров', style: AppTextStyles.appBarTitle),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          indicatorColor: Colors.white,
-          tabs: const [
-            Tab(text: 'Комбинации'),
-            Tab(text: 'Установленные'),
-          ],
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: AppBar(
+          automaticallyImplyLeading: false, // если это главный экран, скрыть кнопку "назад"
+          toolbarHeight: 0, // скрываем сам AppBar
+          bottom: TabBar(
+            controller: _tabController,
+            labelColor: Colors.white,
+            unselectedLabelColor: Colors.white60,
+            indicatorColor: Colors.white,
+            tabs: const [
+              Tab(text: 'Комбинации'),
+              Tab(text: 'Установленные'),
+            ],
+          ),
         ),
       ),
       body: TabBarView(
@@ -88,7 +90,7 @@ class _DocumentCombinationsScreen extends State<DocumentCombinationsScreen> with
           children: [
             FilterChip(
               label: const Text('Основные'),
-              selected: false,
+              selected: true,
               onSelected: (_) {},
               selectedColor: AppColors.selectedFilterBackground(context),
               backgroundColor: AppColors.unselectedFilterBackground(context),
