@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/user_db_service.dart';
+import '../models/user/user_profile.dart';
+import '../models/base/db_helper.dart';
 import '../resources/app_theme.dart';
 
 class ThemeProvider extends ChangeNotifier {
@@ -8,23 +9,30 @@ class ThemeProvider extends ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
 
   Future<void> loadThemeFromDB() async {
-    final isLight = await UserDatabaseService().getUserTheme(); // true or false
-    _themeMode = isLight ? ThemeMode.light : ThemeMode.dark;
-    notifyListeners();
+    final db = await DatabaseHelper().database;
+    final profile = await db.query('user_profile', limit: 1);
+
+    if (profile.isNotEmpty) {
+      final user = UserProfile.fromMap(profile.first);
+      _themeMode = user.lightTheme ? ThemeMode.light : ThemeMode.dark;
+      notifyListeners();
+    }
   }
 
   Future<void> toggleTheme() async {
-    final isCurrentlyDark = _themeMode == ThemeMode.dark;
-    _themeMode = isCurrentlyDark ? ThemeMode.light : ThemeMode.dark;
+    final db = await DatabaseHelper().database;
+    _themeMode = _themeMode == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+
+    await db.update(
+      'user_profile',
+      {'lightTheme': _themeMode == ThemeMode.light ? 1 : 0},
+      where: 'ID = 1',
+    );
+
     notifyListeners();
-    await UserDatabaseService().updateUserTheme(!_themeMode.isDarkMode); // light == const
   }
 
   ThemeData get themeData => _themeMode == ThemeMode.dark
       ? AppTheme.darkTheme
       : AppTheme.lightTheme;
-}
-
-extension on ThemeMode {
-  bool get isDarkMode => this == ThemeMode.dark;
 }

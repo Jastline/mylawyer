@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sqflite/sqflite.dart';
 
-import 'services/user_db_service.dart';
+import 'models/base/db_helper.dart';
 import 'widgets/theme_provider.dart';
 import 'resources/app_theme.dart';
 import 'screens/home_screen.dart';
@@ -10,9 +11,10 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Инициализация базы данных
-  await UserDatabaseService.instance.init();
+  final dbHelper = DatabaseHelper();
+  await dbHelper.database;
 
-  // Создаём ThemeProvider и загружаем тему из БД
+  // Создаём ThemeProvider и загружаем тему
   final themeProvider = ThemeProvider();
   await themeProvider.loadThemeFromDB();
 
@@ -26,8 +28,8 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: themeProvider,
+    return ChangeNotifierProvider(
+      create: (_) => themeProvider,
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(
