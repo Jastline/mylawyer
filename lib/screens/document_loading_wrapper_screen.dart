@@ -43,7 +43,7 @@ class _DocumentLoadingWrapperScreenState extends State<DocumentLoadingWrapperScr
       ),
       body: TabBarView(
         controller: _tabController,
-        children: const [
+        children: [
           DocumentSearchScreen(),
           DocumentDownloadScreen(),
           DocumentInstalledScreen(),

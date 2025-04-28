@@ -4,8 +4,6 @@ import '../providers/app_providers.dart';
 import '../resources/resources.dart';
 import '../widgets/theme_switch_button.dart';
 import 'document_loading_wrapper_screen.dart';
-import 'profile_screen.dart';
-import 'settings_screen.dart';
 import 'home_screen_content.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -39,8 +37,6 @@ class HomeScreen extends StatelessWidget {
     const screens = [
       HomeScreenContent(),
       DocumentLoadingWrapperScreen(),
-      ProfileScreen(),
-      SettingsScreen(),
     ];
     return screens[index];
   }
@@ -63,14 +59,6 @@ class HomeScreen extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.download_rounded),
           label: 'Загрузка',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Профиль',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.settings),
-          label: 'Настройки',
         ),
       ],
     );
