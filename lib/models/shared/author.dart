@@ -1,7 +1,4 @@
-import '../base/db_model.dart';
-
-class Author implements DbModel {
-  @override
+class Author {
   final int id;
   final String author;
 
@@ -10,18 +7,17 @@ class Author implements DbModel {
     required this.author,
   });
 
-  @override
+  factory Author.fromMap(Map<String, dynamic> map) {
+    return Author(
+      id: map['ID'],
+      author: map['author'],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'ID': id,
       'author': author,
     };
-  }
-
-  static Author fromMap(Map<String, dynamic> map) {
-    return Author(
-      id: map['ID'] as int,
-      author: map['author'] as String,
-    );
   }
 }

@@ -1,7 +1,4 @@
-import '../base/db_model.dart';
-
-class IssuedBy implements DbModel {
-  @override
+class IssuedBy {
   final int id;
   final String issuedBy;
 
@@ -10,18 +7,17 @@ class IssuedBy implements DbModel {
     required this.issuedBy,
   });
 
-  @override
+  factory IssuedBy.fromMap(Map<String, dynamic> map) {
+    return IssuedBy(
+      id: map['ID'],
+      issuedBy: map['issuedBy'],
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'ID': id,
       'issuedBy': issuedBy,
     };
-  }
-
-  static IssuedBy fromMap(Map<String, dynamic> map) {
-    return IssuedBy(
-      id: map['ID'] as int,
-      issuedBy: map['issuedBy'] as String,
-    );
   }
 }
