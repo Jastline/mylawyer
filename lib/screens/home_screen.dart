@@ -10,6 +10,7 @@ import 'document_screen.dart';
 import 'document_loading_wrapper_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
+import '../services/document_search_service.dart'; // Подключаем твой новый сервис поиска
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -88,46 +89,14 @@ class HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<HomeScreenContent> {
+  String searchQuery = "";
+
+  late final DocumentSearchService _searchService;
+
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkDisclaimer());
-  }
-
-  Future<void> _checkDisclaimer() async {
-    final appProviders = context.read<AppProviders>();
-    if (!appProviders.disclaimerShown) {
-      await _showDisclaimerDialog();
-      appProviders.setDisclaimerShown(true);
-    }
-  }
-
-  Future<void> _showDisclaimerDialog() async {
-    return showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => AlertDialog(
-        title: Text('Внимание!', style: AppTextStyles.title(context)),
-        content: Text(
-          'В приложении используются юридические документы РФ 1991–2023 годов. '
-              'Мы не гарантируем их абсолютную актуальность и полноту. '
-              'Приложение не является юридической консультацией и не несёт ответственности '
-              'за последствия, связанные с использованием информации.\n\n'
-              'Нажимая "Принять", вы соглашаетесь с этими условиями.',
-          style: AppTextStyles.subtitle(context),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary(context),
-              foregroundColor: Colors.white,
-            ),
-            child: Text('Принять', style: AppTextStyles.buttonText(context)),
-          )
-        ],
-      ),
-    );
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _searchService = DocumentSearchService(context);
   }
 
   @override
@@ -135,13 +104,16 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
     final appProviders = context.watch<AppProviders>();
     final yearRange = appProviders.yearRange;
     final selectedFilters = appProviders.filters;
-    final documents = _getMockDocuments();
+    final documents = _searchService.searchDocuments(searchQuery);
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const SectionHeader(title: 'Поиск по документам'),
+          _buildSearchField(),
+          const SizedBox(height: 10),
           const SectionHeader(title: 'Фильтры'),
           const SizedBox(height: 10),
           _buildFilterChips(selectedFilters),
@@ -153,7 +125,9 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           const SectionHeader(title: 'Документы'),
           const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
+            child: documents.isEmpty
+                ? const Center(child: Text('Документы не найдены'))
+                : ListView.builder(
               itemCount: documents.length,
               itemBuilder: (context, index) => LawCard(
                 document: documents[index],
@@ -162,6 +136,21 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSearchField() {
+    return TextField(
+      onChanged: (query) {
+        setState(() {
+          searchQuery = query;
+        });
+      },
+      decoration: const InputDecoration(
+        labelText: 'Поиск',
+        prefixIcon: Icon(Icons.search),
+        border: OutlineInputBorder(),
       ),
     );
   }
@@ -233,21 +222,5 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
         builder: (_) => DocumentScreen(document: document),
       ),
     );
-  }
-
-  List<RusLawDocument> _getMockDocuments() {
-    return List.generate(5, (index) => RusLawDocument(
-      id: index,
-      title: 'Федеральный закон №${123 + index}-ФЗ',
-      docDate: DateTime(2000 + index).toString(),
-      docNumber: '${123 + index}-ФЗ',
-      internalNumber: 100 + index,
-      isWidelyUsed: true,
-      docTypeID: 1,
-      statusId: 1,
-      authorId: 1,
-      issuedById: 1,
-      signedById: 1,
-    ));
   }
 }
