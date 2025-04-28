@@ -1,233 +1,244 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-
-import '../resources/app_text_styles.dart';
-import '../widgets/theme_provider.dart';
-import '../resources/app_colors.dart';
+import '../models/models.dart';
+import '../providers/app_providers.dart';
+import '../resources/resources.dart';
+import '../widgets/law_card.dart';
+import '../widgets/section_header.dart';
+import '../widgets/theme_switch_button.dart';
+import 'document_screen.dart';
+import 'document_loading_wrapper_screen.dart';
 import 'profile_screen.dart';
 import 'settings_screen.dart';
-import 'document_combinations_screen.dart';
-import 'document_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    final appProviders = context.watch<AppProviders>();
+    final selectedIndex = appProviders.tabIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _getAppBarTitle(selectedIndex),
+          style: AppTextStyles.appBarTitle,
+        ),
+        actions: const [ThemeSwitchButton()],
+      ),
+      body: _getScreen(selectedIndex),
+      bottomNavigationBar: _buildBottomNavBar(isDark, context),
+    );
+  }
+
+  String _getAppBarTitle(int index) {
+    const titles = ['Главная', 'Загрузка', 'Профиль', 'Настройки'];
+    return titles[index];
+  }
+
+  Widget _getScreen(int index) {
+    const screens = [
+      HomeScreenContent(),
+      DocumentLoadingWrapperScreen(),
+      ProfileScreen(),
+      SettingsScreen(),
+    ];
+    return screens[index];
+  }
+
+  BottomNavigationBar _buildBottomNavBar(bool isDark, BuildContext context) {
+    final appProviders = context.watch<AppProviders>();
+
+    return BottomNavigationBar(
+      currentIndex: appProviders.tabIndex,
+      onTap: (index) => context.read<AppProviders>().setTabIndex(index),
+      selectedItemColor: AppColors.primary(context),
+      unselectedItemColor: isDark ? Colors.white54 : Colors.black54,
+      backgroundColor: AppColors.surfaceBackground(context),
+      type: BottomNavigationBarType.fixed,
+      items: const [
+        BottomNavigationBarItem(
+          icon: Icon(Icons.home),
+          label: 'Главная',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.download_rounded),
+          label: 'Загрузка',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.person),
+          label: 'Профиль',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.settings),
+          label: 'Настройки',
+        ),
+      ],
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
+class HomeScreenContent extends StatefulWidget {
+  const HomeScreenContent({super.key});
 
-  final List<Widget> _screens = const [
-    HomeScreenContent(),
-    DocumentCombinationsScreen(),
-    ProfileScreen(),
-    SettingsScreen(),
-  ];
+  @override
+  State<HomeScreenContent> createState() => _HomeScreenContentState();
+}
 
-  final List<String> _titles = [
-    'Главная',
-    'Загрузка',
-    'Профиль',
-    'Настройки',
-  ];
-
+class _HomeScreenContentState extends State<HomeScreenContent> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showDisclaimerIfFirstTime(context);
-    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkDisclaimer());
   }
 
-  Future<void> _showDisclaimerIfFirstTime(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadyShown = prefs.getBool('disclaimer_shown') ?? false;
-
-    if (!alreadyShown) {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Text('Внимание!'),
-          content: const Text(
-            'В приложении используются юридические документы РФ 1991–2023 годов. '
-                'Мы не гарантируем их абсолютную актуальность и полноту. '
-                'Приложение не является юридической консультацией и не несёт ответственности '
-                'за последствия, связанные с использованием информации.\n\n'
-                'Нажимая "Принять", вы соглашаетесь с этими условиями.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('Принять'),
-            ),
-          ],
-        ),
-      );
-
-      await prefs.setBool('disclaimer_shown', true);
+  Future<void> _checkDisclaimer() async {
+    final appProviders = context.read<AppProviders>();
+    if (!appProviders.disclaimerShown) {
+      await _showDisclaimerDialog();
+      appProviders.setDisclaimerShown(true);
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex], style: AppTextStyles.appBarTitle),
+  Future<void> _showDisclaimerDialog() async {
+    return showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: Text('Внимание!', style: AppTextStyles.title(context)),
+        content: Text(
+          'В приложении используются юридические документы РФ 1991–2023 годов. '
+              'Мы не гарантируем их абсолютную актуальность и полноту. '
+              'Приложение не является юридической консультацией и не несёт ответственности '
+              'за последствия, связанные с использованием информации.\n\n'
+              'Нажимая "Принять", вы соглашаетесь с этими условиями.',
+          style: AppTextStyles.subtitle(context),
+        ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.brightness_6, color: Colors.white),
-            onPressed: () {
-              final themeProvider =
-              Provider.of<ThemeProvider>(context, listen: false);
-              themeProvider.toggleTheme();
-            },
-          ),
-        ],
-      ),
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        selectedItemColor: isDark ? Colors.lightBlueAccent : Colors.indigo,
-        unselectedItemColor: isDark ? Colors.white54 : Colors.black54,
-        backgroundColor:
-        isDark ? const Color(0xFF2A2A3C) : const Color(0xFFF5F5F5),
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Главная',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.download_rounded),
-            label: 'Загрузка',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Профиль',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Настройки',
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('Принять', style: AppTextStyles.buttonText(context)),
           ),
         ],
       ),
     );
   }
-}
-
-
-
-class HomeScreenContent extends StatelessWidget {
-  const HomeScreenContent({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appProviders = context.watch<AppProviders>();
+    final yearRange = appProviders.yearRange;
+    final selectedFilters = appProviders.filters;
+    final documents = _getMockDocuments();
+
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Фильтры', style: AppTextStyles.sectionTitle(context)),
+          const SectionHeader(title: 'Фильтры'),
           const SizedBox(height: 10),
-          _buildFilterChips(context),
+          _buildFilterChips(selectedFilters),
           const SizedBox(height: 10),
-          _buildYearSelector(context),
+          _buildYearSelector(yearRange),
           const SizedBox(height: 20),
-          Center(
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          _buildDownloadButton(),
+          const SizedBox(height: 20),
+          const SectionHeader(title: 'Документы'),
+          const SizedBox(height: 10),
+          Expanded(
+            child: ListView.builder(
+              itemCount: documents.length,
+              itemBuilder: (context, index) => LawCard(
+                document: documents[index],
+                onTap: () => _openDocument(documents[index]),
               ),
-              onPressed: () {
-                // Заглушка: логика загрузки документов
-              },
-              child: const Text('Загрузить документы'),
             ),
           ),
-          const SizedBox(height: 20),
-          Text('Документы', style: AppTextStyles.sectionTitle(context)),
-          const SizedBox(height: 10),
-          Expanded(child: _buildDocumentList(context)),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChips(BuildContext context) {
+  Widget _buildFilterChips(Set<String> selectedFilters) {
+    const availableFilters = ['Основные', 'Дополнительные', 'Указы', 'Федеральные законы'];
+
     return Wrap(
       spacing: 8.0,
-      children: [
-        FilterChip(
-          label: const Text('Основные'),
-          selected: true,
-          onSelected: (selected) {},
+      children: availableFilters.map((filter) {
+        return FilterChip(
+          label: Text(filter),
+          selected: selectedFilters.contains(filter),
+          onSelected: (selected) => context.read<AppProviders>().toggleFilter(filter),
           selectedColor: AppColors.selectedFilterBackground(context),
           backgroundColor: AppColors.unselectedFilterBackground(context),
-        ),
-        FilterChip(
-          label: const Text('Дополнительные'),
-          selected: false,
-          onSelected: (selected) {},
-          selectedColor: AppColors.selectedFilterBackground(context),
-          backgroundColor: AppColors.unselectedFilterBackground(context),
-        ),
-        FilterChip(
-          label: const Text('Указы'),
-          selected: false,
-          onSelected: (selected) {},
-          selectedColor: AppColors.selectedFilterBackground(context),
-          backgroundColor: AppColors.unselectedFilterBackground(context),
-        ),
-        FilterChip(
-          label: const Text('Федеральные законы'),
-          selected: false,
-          onSelected: (selected) {},
-          selectedColor: AppColors.selectedFilterBackground(context),
-          backgroundColor: AppColors.unselectedFilterBackground(context),
-        ),
-      ],
+          labelStyle: TextStyle(
+            color: selectedFilters.contains(filter)
+                ? Colors.white
+                : AppColors.onSurface(context),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _buildYearSelector(BuildContext context) {
+  Widget _buildYearSelector(RangeValues yearRange) {
     return Row(
       children: [
         Text('Годы: ', style: AppTextStyles.subtitle(context)),
         const SizedBox(width: 10),
-        Text('с 2000 по 2003', style: AppTextStyles.lawReference(context)),
+        Text(
+          '${yearRange.start.toInt()} - ${yearRange.end.toInt()}',
+          style: AppTextStyles.lawReference(context),
+        ),
       ],
     );
   }
 
-  Widget _buildDocumentList(BuildContext context) {
-    return ListView.builder(
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return Card(
-          color: AppColors.cardBackground(context),
-          child: ListTile(
-            leading: Icon(Icons.description, color: AppColors.iconColor(context)),
-            title: Text('Закон о чём-то важном', style: AppTextStyles.lawTitle(context)),
-            subtitle: Text('2001 • №123-ФЗ', style: AppTextStyles.lawReference(context)),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const DocumentScreen()),
-              );
-            },
-          ),
-        );
-      },
+  Widget _buildDownloadButton() {
+    return Center(
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary(context),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        ),
+        onPressed: _downloadDocuments,
+        child: Text('Загрузить документы', style: AppTextStyles.buttonText(context)),
+      ),
     );
+  }
+
+  Future<void> _downloadDocuments() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Загрузка документов...')),
+    );
+  }
+
+  void _openDocument(RusLawDocument document) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => DocumentScreen(document: document),
+      ),
+    );
+  }
+
+  List<RusLawDocument> _getMockDocuments() {
+    return List.generate(5, (index) => RusLawDocument(
+      id: index,
+      title: 'Федеральный закон №${123 + index}-ФЗ',
+      docDate: DateTime(2000 + index).toString(),
+      docNumber: '${123 + index}-ФЗ',
+      internalNumber: 100 + index,
+      isWidelyUsed: true,
+      docTypeID: 1,
+      statusId: 1,
+      authorId: 1,
+      issuedById: 1,
+      signedById: 1,
+    ));
   }
 }

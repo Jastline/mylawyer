@@ -1,18 +1,19 @@
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../resources/resources.dart';
 import '../models/models.dart';
-import 'package:flutter/material.dart';
 
 class LawCard extends StatelessWidget {
   final RusLawDocument document;
   final VoidCallback? onTap;
 
-  const LawCard({required this.document, this.onTap});
+  const LawCard({required this.document, this.onTap, super.key});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      color: AppColors.cardBackground(context),
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      color: AppColors.cardBackground(context), // Добавляем context сюда
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -21,7 +22,7 @@ class LawCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -31,25 +32,24 @@ class LawCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   Icon(
                     Icons.calendar_today,
                     size: 16,
-                    color: AppColors.onSurface(context).withOpacity(0.6),
+                    color: AppColors.onSurface(context).withValues(alpha: 0.6), // Добавляем context сюда
                   ),
-                  SizedBox(width: 4),
+                  const SizedBox(width: 4),
                   Text(
                     _formatDate(document.docDate),
                     style: AppTextStyles.lawReference(context),
                   ),
-                  Spacer(),
-                  if (document.docNumber != null)
-                    Text(
-                      document.docNumber!,
-                      style: AppTextStyles.lawReference(context),
-                    ),
+                  const Spacer(),
+                  Text(
+                    document.docNumber,
+                    style: AppTextStyles.lawReference(context),
+                  ),
                 ],
               ),
             ],

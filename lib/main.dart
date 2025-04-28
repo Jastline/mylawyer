@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:sqflite/sqflite.dart';
+import 'package:provider/provider.dart'; // Используем только provider
 
 import 'models/base/db_helper.dart';
 import 'widgets/theme_provider.dart';
 import 'resources/app_theme.dart';
 import 'screens/home_screen.dart';
+import 'providers/app_providers.dart'; // <-- добавляем импорт!
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +18,9 @@ void main() async {
   final themeProvider = ThemeProvider();
   await themeProvider.loadThemeFromDB();
 
-  runApp(MyApp(themeProvider: themeProvider));
+  runApp(
+    MyApp(themeProvider: themeProvider),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -28,8 +30,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => themeProvider,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<ThemeProvider>.value(
+          value: themeProvider,
+        ),
+        ChangeNotifierProvider<AppProviders>(
+          create: (_) => AppProviders(), // <-- создаём AppProviders
+        ),
+      ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {
           return MaterialApp(

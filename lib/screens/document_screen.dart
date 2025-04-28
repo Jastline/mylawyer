@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
-import '../resources/app_text_styles.dart';
-//import '../resources/app_colors.dart';
+import '../models/models.dart';
+import '../resources/resources.dart';
 
 class DocumentScreen extends StatelessWidget {
-  final String title;
-  final String date;
-  final String docNumber;
+  final RusLawDocument document;
 
-  const DocumentScreen({
-    super.key,
-    this.title = 'Федеральный закон о чём-то важном',
-    this.date = '2001-04-12',
-    this.docNumber = '№123-ФЗ',
-  });
+  // Принимаем документ через параметр конструктора
+  const DocumentScreen({super.key, required this.document});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +17,8 @@ class DocumentScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.bookmark_border),
             onPressed: () {
-              // TODO: закладка
+              // TODO: Реализовать функционал закладки
+              _toggleBookmark(context);
             },
           ),
         ],
@@ -32,15 +27,22 @@ class DocumentScreen extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            Text(title, style: AppTextStyles.lawTitle(context)),
+            // Заголовок документа
+            Text(document.title, style: AppTextStyles.lawTitle(context)),
             const SizedBox(height: 6),
-            Text('$date • $docNumber', style: AppTextStyles.lawReference(context)),
+            // Дата и номер документа
+            Text(
+              '${document.docDate} • ${document.docNumber}',
+              style: AppTextStyles.lawReference(context),
+            ),
             const SizedBox(height: 16),
+            // Текст документа (заменить на реальный текст документа)
             Text(
               'Здесь будет текст документа (заглушка). ' * 20,
               style: AppTextStyles.lawExplanation(context),
             ),
             const SizedBox(height: 20),
+            // Кнопка для отметки как прочитанный
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
@@ -48,13 +50,28 @@ class DocumentScreen extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               ),
               onPressed: () {
-                // TODO: отметить как прочитанный
+                // TODO: Реализовать логику для отметки документа как прочитанного
+                _markAsRead(context);
               },
               child: const Text('Отметить как прочитанный'),
             )
           ],
         ),
       ),
+    );
+  }
+
+  void _toggleBookmark(BuildContext context) {
+    // Логика для добавления или удаления закладки
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Документ добавлен в закладки')),
+    );
+  }
+
+  void _markAsRead(BuildContext context) {
+    // Логика для отметки документа как прочитанного
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Документ отмечен как прочитанный')),
     );
   }
 }
