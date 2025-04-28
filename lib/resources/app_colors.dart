@@ -10,7 +10,6 @@ class AppColors {
   static const Color primaryLightSelectedFilter = Color(0xFF1565C0); // Синий
   static const Color primaryDarkSelectedFilter = Color(0xFF0D47A1);  // Более насыщенный синий
 
-
   // Для светлой темы
   static Color primaryBackground(BuildContext context) {
     return Theme.of(context).brightness == Brightness.light
@@ -69,7 +68,7 @@ class AppColors {
   static Color cardBackground(BuildContext context) {
     return Theme.of(context).brightness == Brightness.light
         ? const Color(0xFFFFFFFF)
-        : const Color(0xFF1E1E2E);
+        : const Color(0xFF2A2A36); // Тёмнее фон карточек
   }
 
   static Color errorColor(BuildContext context) {

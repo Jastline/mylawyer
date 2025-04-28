@@ -102,9 +102,9 @@ class AppTheme {
       onError: Colors.black,
     ),
     scaffoldBackgroundColor: const Color(0xFF121212),
-    cardColor: const Color(0xFF1E1E2E),
+    cardColor: const Color(0xFF2A2A36), // Тёмнее фон карточек
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF1E1E2E),
+      backgroundColor: Color(0xFF2A2A36),
       elevation: 2,
       centerTitle: true,
       titleTextStyle: TextStyle(
