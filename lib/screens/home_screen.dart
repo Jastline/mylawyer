@@ -117,10 +117,14 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
           style: AppTextStyles.subtitle(context),
         ),
         actions: [
-          TextButton(
+          ElevatedButton(
             onPressed: () => Navigator.of(context).pop(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary(context),
+              foregroundColor: Colors.white,
+            ),
             child: Text('Принять', style: AppTextStyles.buttonText(context)),
-          ),
+          )
         ],
       ),
     );
@@ -163,19 +167,24 @@ class _HomeScreenContentState extends State<HomeScreenContent> {
   }
 
   Widget _buildFilterChips(Set<String> selectedFilters) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     const availableFilters = ['Основные', 'Дополнительные', 'Указы', 'Федеральные законы'];
 
     return Wrap(
       spacing: 8.0,
       children: availableFilters.map((filter) {
+        final isSelected = selectedFilters.contains(filter);
+
         return FilterChip(
           label: Text(filter),
-          selected: selectedFilters.contains(filter),
+          selected: isSelected,
           onSelected: (selected) => context.read<AppProviders>().toggleFilter(filter),
-          selectedColor: AppColors.selectedFilterBackground(context),
+          selectedColor: isDark
+              ? AppColors.primaryDarkSelectedFilter
+              : AppColors.primaryLightSelectedFilter,
           backgroundColor: AppColors.unselectedFilterBackground(context),
           labelStyle: TextStyle(
-            color: selectedFilters.contains(filter)
+            color: isSelected
                 ? Colors.white
                 : AppColors.onSurface(context),
           ),

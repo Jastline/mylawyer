@@ -32,12 +32,14 @@ class _DocumentLoadingWrapperScreenState extends State<DocumentLoadingWrapperScr
         title: const Text('Загрузка документов'),
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
           tabs: const [
             Tab(text: 'Поиск'),
             Tab(text: 'Загрузка'),
             Tab(text: 'Установленные'),
           ],
-        ),
+        )
       ),
       body: TabBarView(
         controller: _tabController,

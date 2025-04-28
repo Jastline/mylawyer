@@ -38,15 +38,16 @@ class DocumentDownloadScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 30),
-            ElevatedButton(
-              onPressed: appProviders.isDownloading
-                  ? () => context.read<AppProviders>().setIsDownloading(false)
-                  : null,
+            appProviders.isDownloading
+                ? ElevatedButton(
+              onPressed: () => context.read<AppProviders>().setIsDownloading(false),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
+                foregroundColor: Colors.white, // белый текст!
               ),
               child: const Text('Отменить загрузку'),
-            ),
+            )
+                : const SizedBox.shrink(),
           ],
         ),
       ),

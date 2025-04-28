@@ -7,6 +7,9 @@ class AppColors {
   static const Color secondaryBlue = Color(0xFF42A5F5);
   static const Color lightBlue = Color(0xFFE3F2FD);
   static const Color darkBlue = Color(0xFF1C2D4A);
+  static const Color primaryLightSelectedFilter = Color(0xFF1565C0); // Синий
+  static const Color primaryDarkSelectedFilter = Color(0xFF0D47A1);  // Более насыщенный синий
+
 
   // Для светлой темы
   static Color primaryBackground(BuildContext context) {
