@@ -4,6 +4,8 @@ class RusLawDocument {
   final String docDate;
   final String docNumber;
   final int internalNumber;
+  final bool isWidelyUsed;
+  final int docTypeID;
   final int statusId;
   final int authorId;
   final int issuedById;
@@ -15,6 +17,8 @@ class RusLawDocument {
     required this.docDate,
     required this.docNumber,
     required this.internalNumber,
+    required this.isWidelyUsed,
+    required this.docTypeID,
     required this.statusId,
     required this.authorId,
     required this.issuedById,
@@ -28,6 +32,8 @@ class RusLawDocument {
       docDate: map['docDate'],
       docNumber: map['docNumber'],
       internalNumber: map['internalNumber'],
+      isWidelyUsed: map['isWidelyUsed'],
+      docTypeID: map['docTypeID'],
       statusId: map['statusID'],
       authorId: map['authorID'],
       issuedById: map['issuedByID'],
@@ -42,7 +48,9 @@ class RusLawDocument {
       'docDate': docDate,
       'docNumber': docNumber,
       'internalNumber': internalNumber,
+      'isWidelyUsed': isWidelyUsed,
       'statusID': statusId,
+      'docTypeID': docTypeID,
       'authorID': authorId,
       'issuedByID': issuedById,
       'signedByID': signedById,

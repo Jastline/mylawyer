@@ -13,6 +13,7 @@ export 'law/rus_law_reference.dart';
 // Shared models
 export 'shared/author.dart';
 export 'shared/classifier.dart';
+export 'shared/document_type.dart';
 export 'shared/issued_by.dart';
 export 'shared/keyword.dart';
 export 'shared/link_type.dart';
