@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/app_providers.dart';
+import '../../providers/app_providers.dart';
 
 class DocumentDownloadScreen extends StatelessWidget {
   const DocumentDownloadScreen({super.key});

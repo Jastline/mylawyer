@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'document_search_screen.dart';
-import 'document_download_screen.dart';
-import 'document_installed_screen.dart';
+import 'document_loading/document_search_screen.dart';
+import 'document_loading/document_download_screen.dart';
+import 'document_loading/document_installed_screen.dart';
 
 class DocumentLoadingWrapperScreen extends StatefulWidget {
   const DocumentLoadingWrapperScreen({super.key});
