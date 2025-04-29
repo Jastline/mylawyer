@@ -29,6 +29,20 @@ android {
         versionName = flutter.versionName
     }
 
+    aaptOptions {
+        noCompress 'db', 'sqlite', 'part1', 'part2' // Добавьте все расширения частей
+        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+        resources {
+            excludes += ['META-INF/*']
+        }
+    }
+
     buildTypes {
         release {
             signingConfig = signingConfigs.getByName("debug")

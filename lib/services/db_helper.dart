@@ -1,17 +1,7 @@
 import 'dart:async';
 import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
-import '../models/author.dart';
-import '../models/classifier.dart';
-import '../models/document_type.dart';
-import '../models/issued_by.dart';
-import '../models/keyword.dart';
-import '../models/rus_law_document.dart';
-import '../models/rus_law_keyword.dart';
-import '../models/rus_law_reference.dart';
-import '../models/rus_law_text.dart';
-import '../models/signed_by.dart';
-import '../models/status.dart';
+import '../models/models.dart';
+import 'database_initializer.dart';
 
 class DBHelper {
   static final DBHelper _instance = DBHelper._internal();
@@ -19,18 +9,26 @@ class DBHelper {
   DBHelper._internal();
 
   static Database? _database;
-  static const _databaseName = 'law_database.db';
+  final DatabaseInitializer _initializer = DatabaseInitializer();
+  bool _isInitializing = false;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDatabase();
-    return _database!;
-  }
+    if (_isInitializing) {
+      // Ожидаем завершения инициализации, если она уже идет
+      while (_database == null) {
+        await Future.delayed(const Duration(milliseconds: 100));
+      }
+      return _database!;
+    }
 
-  Future<Database> _initDatabase() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, _databaseName);
-    return await openDatabase(path);
+    _isInitializing = true;
+    try {
+      _database = await _initializer.initialize();
+      return _database!;
+    } finally {
+      _isInitializing = false;
+    }
   }
 
   // ======================== Основные CRUD операции ========================
