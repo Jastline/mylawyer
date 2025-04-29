@@ -1,55 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart'; // Используем только provider
 
-import 'models/base/db_helper.dart';
-import 'widgets/theme_provider.dart';
+import 'services/db_helper.dart';
 import 'resources/app_theme.dart';
-import 'screens/home_screen.dart';
-import 'providers/app_providers.dart'; // <-- добавляем импорт!
+import 'screens/main_screen.dart';
+import 'services/theme_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Инициализация базы данных
-  final dbHelper = DatabaseHelper();
+  final dbHelper = DBHelper();
   await dbHelper.database;
 
-  // Создаём ThemeProvider и загружаем тему
-  final themeProvider = ThemeProvider();
-  await themeProvider.loadThemeFromDB();
+  // Инициализация менеджера тем
+  final themeManager = ThemeManager();
+  final initialTheme = await themeManager.getThemeMode();
 
   runApp(
-    MyApp(themeProvider: themeProvider),
+    MyApp(
+      dbHelper: dbHelper,
+      themeManager: themeManager,
+      initialTheme: initialTheme,
+    ),
   );
 }
 
-class MyApp extends StatelessWidget {
-  final ThemeProvider themeProvider;
+class MyApp extends StatefulWidget {
+  final DBHelper dbHelper;
+  final ThemeManager themeManager;
+  final ThemeMode initialTheme;
 
-  const MyApp({super.key, required this.themeProvider});
+  const MyApp({
+    super.key,
+    required this.dbHelper,
+    required this.themeManager,
+    required this.initialTheme,
+  });
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late ThemeMode _themeMode;
+
+  @override
+  void initState() {
+    super.initState();
+    _themeMode = widget.initialTheme;
+  }
+
+  void _toggleTheme(bool isDark) async {
+    setState(() {
+      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+    });
+    await widget.themeManager.saveThemeMode(_themeMode);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<ThemeProvider>.value(
-          value: themeProvider,
-        ),
-        ChangeNotifierProvider<AppProviders>(
-          create: (_) => AppProviders(), // <-- создаём AppProviders
-        ),
-      ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, _) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'MyLawyer',
-            theme: AppTheme.lightTheme,
-            darkTheme: AppTheme.darkTheme,
-            themeMode: themeProvider.themeMode,
-            home: const HomeScreen(),
-          );
-        },
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'MyLawyer',
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: _themeMode,
+      home: MainScreen(
+        dbHelper: widget.dbHelper,
+        toggleTheme: _toggleTheme,
+        isDarkTheme: _themeMode == ThemeMode.dark,
       ),
     );
   }
