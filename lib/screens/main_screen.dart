@@ -4,6 +4,7 @@ import '../services/db_helper.dart';
 import 'document_card.dart';
 import '../models/models.dart';
 import 'favorites_screen.dart';
+import '../widgets/app_snackbar.dart';
 
 class MainScreen extends StatefulWidget {
   final DBHelper dbHelper;
@@ -23,21 +24,34 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   int? _selectedDocTypeId;
   List<DocumentType> _docTypes = [];
   List<RusLawDocument> _documents = [];
-  bool _isLoading = true;
+  List<RusLawDocument> _displayedDocuments = [];
+  bool _isLoading = false;
+  bool _hasMore = true;
   int _currentIndex = 0;
+  int _offset = 0;
+  final int _limit = 50;
+  int _totalFound = 0;
 
   @override
   void initState() {
     super.initState();
     _loadInitialData();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadInitialData() async {
     await _fetchDocTypes();
-    await _fetchDocuments();
   }
 
   Future<void> _fetchDocTypes() async {
@@ -47,21 +61,77 @@ class _MainScreenState extends State<MainScreen> {
     } catch (e) {
       debugPrint('Ошибка загрузки типов документов: $e');
       setState(() => _docTypes = []);
+      AppSnackBar.showError(context, 'Не удалось загрузить типы документов');
     }
   }
 
-  Future<void> _fetchDocuments() async {
-    setState(() => _isLoading = true);
-
-    final docs = await widget.dbHelper.searchDocuments(
-      query: _searchController.text,
-      typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
-    );
+  Future<void> _fetchDocuments({bool reset = true}) async {
+    if (_isLoading) return;
 
     setState(() {
-      _documents = docs;
-      _isLoading = false;
+      _isLoading = true;
+      if (reset) {
+        _offset = 0;
+        _hasMore = true;
+        _documents.clear();
+        _displayedDocuments.clear();
+      }
     });
+
+    try {
+      final result = await widget.dbHelper.searchDocuments(
+        query: _searchController.text,
+        typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
+        limit: _limit,
+        offset: _offset,
+      );
+
+      if (!mounted) return;
+
+      int totalCount = _totalFound;
+      if (reset) {
+        totalCount = await widget.dbHelper.getDocumentsCount(
+          query: _searchController.text,
+          typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
+        );
+      }
+
+      setState(() {
+        _isLoading = false;
+        _documents.addAll(result);
+        _displayedDocuments = List.from(_documents);
+        _offset += _limit;
+        _hasMore = result.length == _limit;
+        _totalFound = totalCount;
+
+        if (reset && (_searchController.text.isNotEmpty || _selectedDocTypeId != null)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              AppSnackBar.showQuickInfo(
+                context,
+                'Найдено документов: $_totalFound. Показано: ${_displayedDocuments.length}',
+              );
+            }
+          });
+        }
+      });
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppSnackBar.showError(context, 'Ошибка при загрузке документов');
+      }
+      debugPrint('Ошибка загрузки документов: $e');
+    }
+  }
+
+  void _scrollListener() {
+    if (_scrollController.position.pixels ==
+        _scrollController.position.maxScrollExtent &&
+        _hasMore &&
+        !_isLoading &&
+        mounted) {
+      _fetchDocuments(reset: false);
+    }
   }
 
   void _onSearchChanged() {
@@ -157,36 +227,50 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildDocumentsList() {
-    if (_isLoading) {
+    if (_isLoading && _displayedDocuments.isEmpty) {
       return const Expanded(
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_documents.isEmpty) {
+    if (_displayedDocuments.isEmpty && !_isLoading) {
       return const Expanded(
         child: Center(child: Text('Документы не найдены')),
       );
     }
 
     return Expanded(
-      child: ListView.builder(
-        itemCount: _documents.length,
-        itemBuilder: (context, index) {
-          final doc = _documents[index];
-          return DocumentCard(
-            document: doc,
-            onFavoriteToggle: _fetchDocuments,
-            dbHelper: widget.dbHelper,
-          );
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollEndNotification &&
+              _scrollController.position.pixels ==
+                  _scrollController.position.maxScrollExtent &&
+              _hasMore &&
+              !_isLoading) {
+            _fetchDocuments(reset: false);
+          }
+          return false;
         },
+        child: ListView.builder(
+          controller: _scrollController,
+          itemCount: _displayedDocuments.length + (_hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= _displayedDocuments.length) {
+              return const Center(child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ));
+            }
+
+            final doc = _displayedDocuments[index];
+            return DocumentCard(
+              document: doc,
+              onFavoriteToggle: () => _fetchDocuments(),
+              dbHelper: widget.dbHelper,
+            );
+          },
+        ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

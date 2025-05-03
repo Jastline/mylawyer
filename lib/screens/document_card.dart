@@ -44,13 +44,16 @@ class DocumentCard extends StatelessWidget {
   }
 
   void _showDocumentDetails(BuildContext context) {
+    if (!context.mounted) return;
+
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => DocumentDetailsScreen(
-          documentId: document.id,
-          dbHelper: dbHelper,
-        ),
+        builder: (context) =>
+            DocumentDetailsScreen(
+              documentId: document.id,
+              dbHelper: dbHelper,
+            ),
       ),
     );
   }

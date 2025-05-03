@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/db_helper.dart';
 import 'document_card.dart';
 import '../models/models.dart';
+import '../widgets/app_snackbar.dart';
 
 class FavoritesScreen extends StatefulWidget {
   final DBHelper dbHelper;
@@ -25,11 +26,23 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _loadPinnedDocuments() async {
     setState(() => _isLoading = true);
 
-    final pinnedDocs = await widget.dbHelper.getPinnedDocuments();
-    setState(() {
-      _pinnedDocuments = pinnedDocs;
-      _isLoading = false;
-    });
+    try {
+      final pinnedDocs = await widget.dbHelper.getPinnedDocuments();
+      setState(() {
+        _pinnedDocuments = pinnedDocs;
+        _isLoading = false;
+      });
+
+      // Просто количество без дополнительного текста
+      AppSnackBar.showQuickInfo(
+        context,
+        'В закладках документов: ${pinnedDocs.length}',
+      );
+    } catch (e) {
+      debugPrint('Ошибка загрузки избранных документов: $e');
+      setState(() => _isLoading = false);
+      AppSnackBar.showError(context, 'Не удалось загрузить избранные документы');
+    }
   }
 
   @override

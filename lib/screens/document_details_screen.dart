@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/db_helper.dart';
 import '../models/models.dart';
+import '../widgets/app_snackbar.dart';
 
 class DocumentDetailsScreen extends StatefulWidget {
   final int documentId;
@@ -44,9 +45,8 @@ class _DocumentDetailsScreenState extends State<DocumentDetailsScreen> {
     } catch (e) {
       debugPrint('Ошибка загрузки документа: $e');
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
+        AppSnackBar.showError(context, 'Не удалось загрузить документ');
       }
     }
   }
@@ -62,9 +62,16 @@ class _DocumentDetailsScreenState extends State<DocumentDetailsScreen> {
 
       if (mounted) {
         setState(() => _isPinned = !_isPinned);
+        AppSnackBar.showSuccess(
+          context,
+          _isPinned ? 'Документ добавлен в избранное' : 'Документ удалён из избранного',
+        );
       }
     } catch (e) {
       debugPrint('Ошибка изменения статуса закрепления: $e');
+      if (mounted) {
+        AppSnackBar.showError(context, 'Ошибка при изменении статуса');
+      }
     }
   }
 

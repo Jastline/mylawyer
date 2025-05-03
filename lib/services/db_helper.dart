@@ -156,6 +156,39 @@ class DBHelper {
 
   // ======================== Методы поиска ========================
 
+  Future<int> getDocumentsCount({
+    String? query,
+    List<int>? typeIds,
+  }) async {
+    final db = await database;
+
+    final where = <String>[];
+    final whereArgs = <dynamic>[];
+
+    if (query != null && query.isNotEmpty) {
+      where.add('''
+      (title LIKE ? OR docNumber LIKE ? OR EXISTS (
+        SELECT 1 FROM rus_law_text 
+        WHERE documentID = rus_law_document.ID 
+        AND text LIKE ?
+      ))
+    ''');
+      whereArgs.addAll(['%$query%', '%$query%', '%$query%']);
+    }
+
+    if (typeIds != null && typeIds.isNotEmpty) {
+      where.add('docTypeID IN (${List.filled(typeIds.length, '?').join(',')})');
+      whereArgs.addAll(typeIds);
+    }
+
+    final result = await db.rawQuery('''
+    SELECT COUNT(*) as count FROM rus_law_document
+    ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
+  ''', whereArgs);
+
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
   /// Полнотекстовый поиск по документам
   Future<List<RusLawDocument>> searchDocuments({
     String? query,
