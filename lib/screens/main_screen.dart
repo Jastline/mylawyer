@@ -109,7 +109,7 @@ class _MainScreenState extends State<MainScreen> {
             if (mounted) {
               AppSnackBar.showQuickInfo(
                 context,
-                'Найдено документов: $_totalFound. Показано: ${_displayedDocuments.length}',
+                'Найдено документов: $_totalFound.',
               );
             }
           });
