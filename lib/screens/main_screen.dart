@@ -94,7 +94,7 @@ class _MainScreenState extends State<MainScreen> {
             child: TextField(
               onChanged: _onSearchChanged,
               decoration: const InputDecoration(
-                labelText: 'Поиск по ключевым словам',
+                labelText: 'Поиск',
                 border: OutlineInputBorder(),
               ),
             ),

@@ -4,6 +4,7 @@ import 'services/db_helper.dart';
 import 'resources/app_theme.dart';
 import 'screens/main_screen.dart';
 import 'services/theme_manager.dart';
+import 'screens/debug_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -65,6 +66,9 @@ class _MyAppState extends State<MyApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
+      //home: DebugScreen(
+        //dbHelper: widget.dbHelper,
+      //)
       home: MainScreen(
         dbHelper: widget.dbHelper,
         toggleTheme: _toggleTheme,

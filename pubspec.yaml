@@ -24,6 +24,9 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+<<<<<<< HEAD
+    - assets/database/law_database.db
+=======
     - assets/database/law_database_part1.db
     - assets/database/law_database_part2.db
     - assets/database/law_database_part3.db
@@ -34,6 +37,7 @@ flutter:
     - assets/database/law_database_part8.db
     - assets/database/law_database_part9.db
     - assets/database/law_database_part10.db
+>>>>>>> parent of 00b0b33 (million musora)
     - assets/images/default_avatar.png
     - assets/fonts/  # Добавляем всю папку fonts
   fonts:
