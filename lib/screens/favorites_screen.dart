@@ -35,7 +35,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Избранное')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _pinnedDocuments.isEmpty

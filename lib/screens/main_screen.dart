@@ -1,7 +1,9 @@
+// main_screen.dart
 import 'package:flutter/material.dart';
 import '../services/db_helper.dart';
 import 'document_card.dart';
 import '../models/models.dart';
+import 'favorites_screen.dart';
 
 class MainScreen extends StatefulWidget {
   final DBHelper dbHelper;
@@ -25,6 +27,7 @@ class _MainScreenState extends State<MainScreen> {
   List<DocumentType> _docTypes = [];
   List<RusLawDocument> _documents = [];
   bool _isLoading = true;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -42,7 +45,6 @@ class _MainScreenState extends State<MainScreen> {
       final types = await widget.dbHelper.getDocumentTypes();
       setState(() => _docTypes = types);
     } catch (e) {
-      // Обработка ошибки
       debugPrint('Ошибка загрузки типов документов: $e');
       setState(() => _docTypes = []);
     }
@@ -75,7 +77,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('MyLawyer'),
+        title: Text(_currentIndex == 0 ? 'Поиск' : 'Избранное'),
         actions: [
           IconButton(
             icon: Icon(
@@ -86,24 +88,46 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: _searchController,
-              onChanged: (_) => _onSearchChanged(),
-              decoration: const InputDecoration(
-                labelText: 'Поиск',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.search),
-              ),
-            ),
+      body: _currentIndex == 0 ? _buildSearchScreen() : FavoritesScreen(dbHelper: widget.dbHelper),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.search),
+            label: 'Поиск',
           ),
-          _buildTypeFilter(),
-          _buildDocumentsList(),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.star),
+            label: 'Закладки',
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSearchScreen() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (_) => _onSearchChanged(),
+            decoration: const InputDecoration(
+              labelText: 'Поиск',
+              border: OutlineInputBorder(),
+              suffixIcon: Icon(Icons.search),
+            ),
+          ),
+        ),
+        _buildTypeFilter(),
+        _buildDocumentsList(),
+      ],
     );
   }
 
