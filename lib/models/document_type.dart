@@ -1,18 +1,25 @@
-import 'base_model.dart';
+import 'models.dart';
 
 class DocumentType extends BaseModel {
   final String docType;
 
-  DocumentType({int? id, required this.docType}) : super(id: id);
+  DocumentType({
+    required int id,
+    required this.docType,
+  }) : super(id: id);
 
-  factory DocumentType.fromMap(Map<String, dynamic> map) => DocumentType(
-    id: map['ID'],
-    docType: map['docType'],
-  );
+  factory DocumentType.fromMap(Map<String, dynamic> map) {
+    return DocumentType(
+      id: map['ID'],
+      docType: map['docType'],
+    );
+  }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'ID': id,
-    'docType': docType,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'ID': id,
+      'docType': docType,
+    };
+  }
 }

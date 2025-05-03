@@ -1,18 +1,25 @@
-import 'base_model.dart';
+import 'models.dart';
 
 class Keyword extends BaseModel {
   final String keyword;
 
-  Keyword({int? id, required this.keyword}) : super(id: id);
+  Keyword({
+    required int id,
+    required this.keyword,
+  }) : super(id: id);
 
-  factory Keyword.fromMap(Map<String, dynamic> map) => Keyword(
-    id: map['ID'],
-    keyword: map['keyword'],
-  );
+  factory Keyword.fromMap(Map<String, dynamic> map) {
+    return Keyword(
+      id: map['ID'],
+      keyword: map['keyword'],
+    );
+  }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'ID': id,
-    'keyword': keyword,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'ID': id,
+      'keyword': keyword,
+    };
+  }
 }

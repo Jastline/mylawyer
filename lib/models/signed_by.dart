@@ -1,18 +1,25 @@
-import 'base_model.dart';
+import 'models.dart';
 
 class SignedBy extends BaseModel {
   final String signedBy;
 
-  SignedBy({int? id, required this.signedBy}) : super(id: id);
+  SignedBy({
+    required int id,
+    required this.signedBy,
+  }) : super(id: id);
 
-  factory SignedBy.fromMap(Map<String, dynamic> map) => SignedBy(
-    id: map['ID'],
-    signedBy: map['signedBy'],
-  );
+  factory SignedBy.fromMap(Map<String, dynamic> map) {
+    return SignedBy(
+      id: map['ID'],
+      signedBy: map['signedBy'],
+    );
+  }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'ID': id,
-    'signedBy': signedBy,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'ID': id,
+      'signedBy': signedBy,
+    };
+  }
 }

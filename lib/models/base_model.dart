@@ -1,7 +1,7 @@
 abstract class BaseModel {
-  final int? id;
+  int id;
 
-  BaseModel({this.id});
+  BaseModel({required this.id});
 
   Map<String, dynamic> toMap();
 }

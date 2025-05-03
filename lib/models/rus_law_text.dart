@@ -1,25 +1,30 @@
-import 'base_model.dart';
+import 'models.dart';
+import 'dart:typed_data';
 
 class RusLawText extends BaseModel {
   final int documentID;
-  final String text;
+  final Uint8List text; // BLOB
 
   RusLawText({
-    int? id,
+    required int id,
     required this.documentID,
     required this.text,
   }) : super(id: id);
 
-  factory RusLawText.fromMap(Map<String, dynamic> map) => RusLawText(
-    id: map['ID'],
-    documentID: map['documentID'],
-    text: map['text'],
-  );
+  factory RusLawText.fromMap(Map<String, dynamic> map) {
+    return RusLawText(
+      id: map['ID'],
+      documentID: map['documentID'],
+      text: map['text'],
+    );
+  }
 
   @override
-  Map<String, dynamic> toMap() => {
-    'ID': id,
-    'documentID': documentID,
-    'text': text,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'ID': id,
+      'documentID': documentID,
+      'text': text,
+    };
+  }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/db_helper.dart';
 import 'document_card.dart';
+import '../models/models.dart';
 
 class MainScreen extends StatefulWidget {
   final DBHelper dbHelper;
@@ -19,10 +20,10 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  String _searchKeyword = '';
-  String? _selectedDocType;
-  List<String> _docTypes = [];
-  List<int> _documentIds = [];
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedDocTypeId;
+  List<DocumentType> _docTypes = [];
+  List<RusLawDocument> _documents = [];
   bool _isLoading = true;
 
   @override
@@ -34,37 +35,39 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _loadInitialData() async {
     await _fetchDocTypes();
     await _fetchDocuments();
-    setState(() => _isLoading = false);
   }
 
   Future<void> _fetchDocTypes() async {
-    final types = await widget.dbHelper.getDocumentTypes();
-    _docTypes = types.map((type) => type.docType).toList();
+    try {
+      final types = await widget.dbHelper.getDocumentTypes();
+      setState(() => _docTypes = types);
+    } catch (e) {
+      // Обработка ошибки
+      debugPrint('Ошибка загрузки типов документов: $e');
+      setState(() => _docTypes = []);
+    }
   }
 
   Future<void> _fetchDocuments() async {
     setState(() => _isLoading = true);
 
     final docs = await widget.dbHelper.searchDocuments(
-      title: _searchKeyword.isNotEmpty ? _searchKeyword : null,
-      docTypeId: _selectedDocType != null
-          ? _docTypes.indexOf(_selectedDocType!) + 1
-          : null,
+      query: _searchController.text,
+      typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
     );
 
     setState(() {
-      _documentIds = docs.map((doc) => doc.id!).toList();
+      _documents = docs;
       _isLoading = false;
     });
   }
 
-  void _onSearchChanged(String keyword) {
-    _searchKeyword = keyword;
+  void _onSearchChanged() {
     _fetchDocuments();
   }
 
-  void _onDocTypeSelected(String? docType) {
-    _selectedDocType = docType;
+  void _onDocTypeSelected(int? typeId) {
+    setState(() => _selectedDocTypeId = typeId);
     _fetchDocuments();
   }
 
@@ -79,74 +82,87 @@ class _MainScreenState extends State<MainScreen> {
               widget.isDarkTheme ? Icons.light_mode : Icons.dark_mode,
               color: Theme.of(context).appBarTheme.iconTheme?.color,
             ),
-            onPressed: () {
-              widget.toggleTheme(!widget.isDarkTheme);
-            },
+            onPressed: () => widget.toggleTheme(!widget.isDarkTheme),
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
+      body: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: TextField(
-              onChanged: _onSearchChanged,
+              controller: _searchController,
+              onChanged: (_) => _onSearchChanged(),
               decoration: const InputDecoration(
                 labelText: 'Поиск',
                 border: OutlineInputBorder(),
+                suffixIcon: Icon(Icons.search),
               ),
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                ChoiceChip(
-                  label: const Text('Все'),
-                  selected: _selectedDocType == null,
-                  onSelected: (_) => _onDocTypeSelected(null),
-                ),
-                ..._docTypes.map((type) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: ChoiceChip(
-                      label: Text(type),
-                      selected: _selectedDocType == type,
-                      onSelected: (_) => _onDocTypeSelected(type),
-                    ),
-                  );
-                }).toList(),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _documentIds.isEmpty
-                ? const Center(child: Text('Документы не найдены'))
-                : ListView.builder(
-              itemCount: _documentIds.length,
-              itemBuilder: (context, index) {
-                return FutureBuilder(
-                  future: widget.dbHelper.getFullDocumentById(
-                      _documentIds[index]),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const ListTile(
-                          title: Text('Загрузка...'));
-                    }
-                    return DocumentCard(
-                      documentId: _documentIds[index],
-                      onFavoriteToggle: _fetchDocuments,
-                      dbHelper: widget.dbHelper,
-                    );
-                  },
-                );
-              },
-            ),
-          ),
+          _buildTypeFilter(),
+          _buildDocumentsList(),
         ],
       ),
     );
+  }
+
+  Widget _buildTypeFilter() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          ChoiceChip(
+            label: const Text('Все'),
+            selected: _selectedDocTypeId == null,
+            onSelected: (_) => _onDocTypeSelected(null),
+          ),
+          ..._docTypes.map((type) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: ChoiceChip(
+                label: Text(type.docType),
+                selected: _selectedDocTypeId == type.id,
+                onSelected: (_) => _onDocTypeSelected(type.id),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentsList() {
+    if (_isLoading) {
+      return const Expanded(
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_documents.isEmpty) {
+      return const Expanded(
+        child: Center(child: Text('Документы не найдены')),
+      );
+    }
+
+    return Expanded(
+      child: ListView.builder(
+        itemCount: _documents.length,
+        itemBuilder: (context, index) {
+          final doc = _documents[index];
+          return DocumentCard(
+            document: doc,
+            onFavoriteToggle: _fetchDocuments,
+            dbHelper: widget.dbHelper,
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }

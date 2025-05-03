@@ -9,8 +9,6 @@ android {
 
     compileSdk = 35
     ndkVersion = "27.0.12077973"
-    //compileSdk = flutter.compileSdkVersion
-    //ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -23,24 +21,22 @@ android {
 
     defaultConfig {
         applicationId = "com.JastLine.mylawyer"
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion.toInt()
+        targetSdk = flutter.targetSdkVersion.toInt()
         versionCode = flutter.versionCode.toInt()
         versionName = flutter.versionName
     }
 
     aaptOptions {
-        noCompress 'db', 'sqlite', 'part1', 'part2' // Добавьте все расширения частей
-        ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        noCompress.addAll(listOf("db", "sqlite", "part1", "part2"))
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:<dir>_*:!CVS:!thumbs.db:!picasa.ini:!*~"
     }
 
     packagingOptions {
         jniLibs {
             useLegacyPackaging = true
         }
-        resources {
-            excludes += ['META-INF/*']
-        }
+        resources.excludes.addAll(listOf("META-INF/*"))
     }
 
     buildTypes {
@@ -52,9 +48,6 @@ android {
                 "proguard-rules.pro"
             )
         }
-        //release {
-            //signingConfig = signingConfigs.getByName("debug")
-        //}
         debug {
             isMinifyEnabled = false
         }
@@ -63,4 +56,8 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
 }
