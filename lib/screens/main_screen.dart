@@ -48,6 +48,7 @@ class _MainScreenState extends State<MainScreen> {
   bool _hasMore = true;
   bool _isFiltering = false;
   int _filterProgress = 0;
+  bool _showLoadingIndicator = false; // Новый флаг для индикатора загрузки
 
   // Навигация
   int _currentIndex = 0;
@@ -58,6 +59,7 @@ class _MainScreenState extends State<MainScreen> {
     super.initState();
     _initScrollListener();
     _loadInitialData();
+    _searchController.addListener(_onSearchChanged); // Добавляем слушатель для поиска
   }
 
   @override
@@ -109,14 +111,17 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _fetchDocuments({bool reset = true}) async {
     if (_isLoading || _isFiltering) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _showLoadingIndicator = true; // Показываем индикатор при начале загрузки
+    });
 
     try {
+      final searchQuery = _searchController.text.trim();
+
       if (reset) {
         _filteredDocumentIds = await widget.dbHelper.getAllFilteredDocumentIds(
-          query: _searchController.text.trim().isNotEmpty
-              ? _searchController.text.trim()
-              : null,
+          query: searchQuery.isEmpty ? null : searchQuery, // Если поиск пустой - null
           typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
           dateFrom: _yearFrom,
           dateTo: _yearTo,
@@ -132,6 +137,7 @@ class _MainScreenState extends State<MainScreen> {
         if (mounted) setState(() {
           _hasMore = false;
           _isLoading = false;
+          _showLoadingIndicator = false; // Скрываем индикатор
         });
         return;
       }
@@ -156,12 +162,14 @@ class _MainScreenState extends State<MainScreen> {
         _currentBatchIndex += batchIds.length;
         _hasMore = _currentBatchIndex < _filteredDocumentIds.length;
         _isLoading = false;
+        _showLoadingIndicator = false; // Скрываем индикатор
       });
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
           _hasMore = false;
+          _showLoadingIndicator = false; // Скрываем индикатор при ошибке
         });
         AppSnackBar.showError(context, 'Ошибка при загрузке документов');
       }
@@ -170,7 +178,15 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   // Методы фильтрации
-  void _onSearchChanged() => _fetchDocuments();
+  void _onSearchChanged() {
+    // Если строка поиска пустая - показываем все документы по текущим фильтрам
+    if (_searchController.text.trim().isEmpty) {
+      _fetchDocuments();
+    } else {
+      // Иначе выполняем поиск
+      _fetchDocuments();
+    }
+  }
 
   void _onDocTypeSelected(int? typeId) {
     setState(() => _selectedDocTypeId = typeId);
@@ -191,23 +207,18 @@ class _MainScreenState extends State<MainScreen> {
       helpText: isFrom ? 'Выберите начальный год' : 'Выберите конечный год',
       fieldLabelText: isFrom ? 'Начальный год' : 'Конечный год',
       fieldHintText: 'ГГГГ',
-      // Показываем только год
       initialDatePickerMode: DatePickerMode.year,
     );
 
     if (picked != null && mounted) {
       setState(() {
         if (isFrom) {
-          // Устанавливаем начало года
           _yearFrom = DateTime(picked.year, 1, 1);
-          // Если конечная дата меньше начальной, сбрасываем ее
           if (_yearTo != null && _yearTo!.isBefore(_yearFrom!)) {
             _yearTo = null;
           }
         } else {
-          // Устанавливаем конец года
           _yearTo = DateTime(picked.year, 12, 31);
-          // Если начальная дата больше конечной, сбрасываем ее
           if (_yearFrom != null && _yearFrom!.isAfter(_yearTo!)) {
             _yearFrom = null;
           }
@@ -259,6 +270,18 @@ class _MainScreenState extends State<MainScreen> {
             onPressed: () => widget.toggleTheme(!widget.isDarkTheme),
           ),
         ],
+        bottom: _showLoadingIndicator
+            ? PreferredSize(
+          preferredSize: const Size.fromHeight(2.0),
+          child: LinearProgressIndicator(
+            minHeight: 2.0,
+            backgroundColor: Colors.transparent,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        )
+            : null,
       ),
       body: _currentIndex == 0 ? _buildSearchScreen()
           : FavoritesScreen(dbHelper: widget.dbHelper),
@@ -325,7 +348,6 @@ class _MainScreenState extends State<MainScreen> {
       padding: const EdgeInsets.all(8.0),
       child: TextField(
         controller: _searchController,
-        onChanged: (_) => _onSearchChanged(),
         decoration: const InputDecoration(
           labelText: 'Поиск',
           border: OutlineInputBorder(),
