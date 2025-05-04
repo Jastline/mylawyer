@@ -263,39 +263,83 @@ class DBHelper {
     final where = <String>[];
     final whereArgs = <dynamic>[];
 
-    // Поиск по тексту
-    if (query?.isNotEmpty ?? false) {
-      where.add('''
-      (title LIKE ? OR docNumber LIKE ? OR EXISTS (
-        SELECT 1 FROM rus_law_text 
-        WHERE documentID = rus_law_document.ID 
-        AND text LIKE ?
-      ))
-    ''');
-      whereArgs.addAll(['%$query%', '%$query%', '%$query%']);
-    }
-
-    // Фильтр по типу
+    // Фильтр по типу документа
     if (typeIds?.isNotEmpty ?? false) {
       where.add('docTypeID IN (${List.filled(typeIds!.length, '?').join(',')})');
       whereArgs.addAll(typeIds);
     }
 
-    // Фильтр по дате
+    // Фильтр по дате (точный диапазон)
     if (dateFrom != null || dateTo != null) {
-      final dateConditions = <String>[];
-
-      if (dateFrom != null) {
-        dateConditions.add('docDate >= ?');
-        whereArgs.add(dateFrom.toIso8601String());
+      if (dateFrom != null && dateTo != null) {
+        where.add('docDate BETWEEN ? AND ?');
+        whereArgs.addAll([
+          _formatDateForDb(dateFrom),
+          _formatDateForDb(dateTo),
+        ]);
+      } else if (dateFrom != null) {
+        where.add('docDate >= ?');
+        whereArgs.add(_formatDateForDb(dateFrom));
+      } else if (dateTo != null) {
+        where.add('docDate <= ?');
+        whereArgs.add(_formatDateForDb(dateTo));
       }
+    }
 
-      if (dateTo != null) {
-        dateConditions.add('docDate <= ?');
-        whereArgs.add(dateTo.toIso8601String());
-      }
+    // Поиск по тексту (с приоритетами)
+    if (query?.isNotEmpty ?? false) {
+      final searchConditions = <String>[];
+      final searchArgs = <dynamic>[];
 
-      where.add(dateConditions.join(' AND '));
+      // 1. Поиск по названию
+      searchConditions.add('title LIKE ?');
+      searchArgs.add('%$query%');
+
+      // 2. Поиск по номеру документа
+      searchConditions.add('docNumber LIKE ?');
+      searchArgs.add('%$query%');
+
+      // 3. Поиск по ключевым словам
+      searchConditions.add('''
+        EXISTS (
+          SELECT 1 FROM rus_law_keyword rlk 
+          JOIN keyword k ON rlk.keywordID = k.ID
+          WHERE rlk.documentID = rus_law_document.ID 
+          AND k.keyword LIKE ?
+        )
+      ''');
+      searchArgs.add('%$query%');
+
+      // 4. Поиск по авторам/подписавшим/выдавшим
+      searchConditions.add('''
+        EXISTS (
+          SELECT 1 FROM author a 
+          WHERE a.ID = rus_law_document.authorID 
+          AND a.author LIKE ?
+        ) OR EXISTS (
+          SELECT 1 FROM signed_by s 
+          WHERE s.ID = rus_law_document.signedByID 
+          AND s.signedBy LIKE ?
+        ) OR EXISTS (
+          SELECT 1 FROM issued_by i 
+          WHERE i.ID = rus_law_document.issuedByID 
+          AND i.issuedBy LIKE ?
+        )
+      ''');
+      searchArgs.addAll(['%$query%', '%$query%', '%$query%']);
+
+      // 5. Поиск по полному тексту
+      searchConditions.add('''
+        EXISTS (
+          SELECT 1 FROM rus_law_text 
+          WHERE documentID = rus_law_document.ID 
+          AND text LIKE ?
+        )
+      ''');
+      searchArgs.add('%$query%');
+
+      where.add('(${searchConditions.join(' OR ')})');
+      whereArgs.addAll(searchArgs);
     }
 
     final result = await db.query(
@@ -310,17 +354,24 @@ class DBHelper {
     return result.map(RusLawDocument.fromMap).toList();
   }
 
+  String _formatDateForDb(DateTime date) {
+    return date.toIso8601String(); // Полный формат даты
+  }
+
   String _buildOrderByClause(String sortField, bool sortAscending) {
-    final fieldName = sortField == 'title' ? 'title' : 'docDate';
     final direction = sortAscending ? 'ASC' : 'DESC';
 
-    // Для NULL значений в дате - помещаем их в конец при сортировке по убыванию
-    // и в начало при сортировке по возрастанию
-    if (fieldName == 'docDate') {
-      return 'CASE WHEN $fieldName IS NULL THEN 1 ELSE 0 END, $fieldName $direction';
+    if (sortField == 'title') {
+      return 'title COLLATE UNICODE $direction';
+    } else {
+      // Сортировка по дате (год -> месяц -> день)
+      return '''
+        CASE WHEN docDate IS NULL THEN 1 ELSE 0 END,
+        substr(docDate, 1, 4) $direction,
+        substr(docDate, 6, 2) $direction,
+        substr(docDate, 9, 2) $direction
+      ''';
     }
-
-    return '$fieldName $direction';
   }
 
   /// Поиск документов по ключевым словам

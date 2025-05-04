@@ -27,7 +27,6 @@ class _MainScreenState extends State<MainScreen> {
   int? _selectedDocTypeId;
   List<DocumentType> _docTypes = [];
   List<RusLawDocument> _documents = [];
-  List<RusLawDocument> _displayedDocuments = [];
   bool _isLoading = false;
   bool _hasMore = true;
   int _currentIndex = 0;
@@ -46,8 +45,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
     _scrollController.addListener(_scrollListener);
+    _loadInitialData();
   }
 
   @override
@@ -59,6 +58,7 @@ class _MainScreenState extends State<MainScreen> {
 
   Future<void> _loadInitialData() async {
     await _fetchDocTypes();
+    await _fetchDocuments();
   }
 
   Future<void> _fetchDocTypes() async {
@@ -85,7 +85,9 @@ class _MainScreenState extends State<MainScreen> {
 
     try {
       final result = await widget.dbHelper.searchDocuments(
-        query: _searchController.text,
+        query: _searchController.text.trim().isNotEmpty
+            ? _searchController.text.trim()
+            : null,
         typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
         dateFrom: _yearFrom,
         dateTo: _yearTo,
@@ -98,7 +100,9 @@ class _MainScreenState extends State<MainScreen> {
       if (!mounted) return;
 
       final totalCount = await widget.dbHelper.getDocumentsCount(
-        query: _searchController.text,
+        query: _searchController.text.trim().isNotEmpty
+            ? _searchController.text.trim()
+            : null,
         typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
         dateFrom: _yearFrom,
         dateTo: _yearTo,
@@ -112,16 +116,8 @@ class _MainScreenState extends State<MainScreen> {
         } else {
           _documents.addAll(result);
         }
-        _displayedDocuments = List.from(_documents);
         _offset = _documents.length;
         _hasMore = result.length == _limit;
-
-        if (reset) {
-          AppSnackBar.showQuickInfo(
-            context,
-            'Найдено документов: $_totalFound.',
-          );
-        }
       });
     } catch (e) {
       if (mounted) {
@@ -136,26 +132,9 @@ class _MainScreenState extends State<MainScreen> {
     if (_scrollController.position.pixels ==
         _scrollController.position.maxScrollExtent &&
         _hasMore &&
-        !_isLoading &&
-        mounted) {
-      _loadMoreDocuments();
+        !_isLoading) {
+      _fetchDocuments(reset: false);
     }
-  }
-
-  // Метод для подгрузки документов
-  Future<void> _loadMoreDocuments() async {
-    if (_isLoading || !_hasMore) return;
-
-    setState(() => _isLoading = true);
-
-    final newDocuments = _documents.skip(_offset).take(_limit).toList();
-
-    setState(() {
-      _displayedDocuments.addAll(newDocuments);
-      _offset += newDocuments.length;
-      _hasMore = _offset < _documents.length;
-      _isLoading = false;
-    });
   }
 
   void _onSearchChanged() {
@@ -178,24 +157,6 @@ class _MainScreenState extends State<MainScreen> {
       firstDate: firstDate,
       lastDate: lastDate,
       initialDatePickerMode: DatePickerMode.year,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Theme.of(context).primaryColor,
-              onPrimary: Colors.white,
-              surface: Theme.of(context).scaffoldBackgroundColor,
-              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
-            ),
-            textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.white, // Белый цвет для кнопок
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
     );
 
     if (picked != null) {
@@ -221,12 +182,10 @@ class _MainScreenState extends State<MainScreen> {
   void _changeSort(String field) {
     setState(() {
       if (_sortField == field) {
-        // Если уже сортируем по этому полю, меняем направление
         _sortAscending = !_sortAscending;
       } else {
-        // Если новое поле сортировки, устанавливаем по возрастанию (можно изменить на false для убывания по умолчанию)
         _sortField = field;
-        _sortAscending = true;
+        _sortAscending = false;
       }
       _fetchDocuments();
     });
@@ -236,7 +195,7 @@ class _MainScreenState extends State<MainScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_currentIndex == 0 ? 'Поиск' : 'Избранное'),
+        title: Text(_currentIndex == 0 ? 'Поиск ($_totalFound)' : 'Избранное'),
         actions: [
           IconButton(
             icon: Icon(
@@ -298,7 +257,7 @@ class _MainScreenState extends State<MainScreen> {
       child: Row(
         children: [
           ChoiceChip(
-            label: const Text('Все'),
+            label: const Text('Все типы'),
             selected: _selectedDocTypeId == null,
             onSelected: (bool selected) {
               if (selected) _onDocTypeSelected(null);
@@ -372,119 +331,101 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildSortOptions() {
-    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
-      color: Theme.of(context).colorScheme.onSurface,
-    );
+    final theme = Theme.of(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: Row(
         children: [
-          Text('Сортировка: ', style: textStyle),
+          Text('Сортировка:', style: theme.textTheme.bodyMedium),
           const SizedBox(width: 8),
-          ChoiceChip(
-            label: Row(
-              children: [
-                Text('По названию', style: textStyle),
-                if (_sortField == 'title')
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(scale: animation, child: child);
-                      },
-                      child: Icon(
-                        _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 16,
-                        key: ValueKey<bool>(_sortAscending),
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            selected: _sortField == 'title',
-            selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-            onSelected: (bool selected) => _changeSort('title'),
+          _buildSortChip(
+            label: 'По названию',
+            field: 'title',
+            currentField: _sortField,
+            ascending: _sortAscending,
           ),
           const SizedBox(width: 8),
-          ChoiceChip(
-            label: Row(
-              children: [
-                Text('По дате', style: textStyle),
-                if (_sortField == 'docDate')
-                  Padding(
-                    padding: const EdgeInsets.only(left: 4),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 200),
-                      transitionBuilder: (child, animation) {
-                        return ScaleTransition(scale: animation, child: child);
-                      },
-                      child: Icon(
-                        _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
-                        size: 16,
-                        key: ValueKey<bool>(_sortAscending),
-                        color: Theme.of(context).colorScheme.onSurface,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            selected: _sortField == 'docDate',
-            selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
-            onSelected: (bool selected) => _changeSort('docDate'),
+          _buildSortChip(
+            label: 'По дате',
+            field: 'docDate',
+            currentField: _sortField,
+            ascending: _sortAscending,
           ),
         ],
       ),
     );
   }
 
+  Widget _buildSortChip({
+    required String label,
+    required String field,
+    required String currentField,
+    required bool ascending,
+  }) {
+    final isSelected = currentField == field;
+    final theme = Theme.of(context);
+
+    return ChoiceChip(
+      label: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label),
+          if (isSelected)
+            Padding(
+              padding: const EdgeInsets.only(left: 4),
+              child: Icon(
+                ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 16,
+              ),
+            ),
+        ],
+      ),
+      selected: isSelected,
+      onSelected: (selected) {
+        if (selected) _changeSort(field);
+      },
+      selectedColor: theme.colorScheme.primary.withValues(alpha: 0.2),
+      labelStyle: theme.textTheme.bodyMedium?.copyWith(
+        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+      ),
+    );
+  }
+
   Widget _buildDocumentsList() {
-    if (_isLoading && _displayedDocuments.isEmpty) {
+    if (_isLoading && _documents.isEmpty) {
       return const Expanded(
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_displayedDocuments.isEmpty && !_isLoading) {
+    if (_documents.isEmpty && !_isLoading) {
       return const Expanded(
         child: Center(child: Text('Документы не найдены')),
       );
     }
 
     return Expanded(
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          if (notification is ScrollEndNotification &&
-              _scrollController.position.pixels ==
-                  _scrollController.position.maxScrollExtent &&
-              _hasMore &&
-              !_isLoading) {
-            _fetchDocuments(reset: false);
-          }
-          return false;
-        },
-        child: ListView.builder(
-          controller: _scrollController,
-          itemCount: _displayedDocuments.length + (_hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index >= _displayedDocuments.length) {
-              return const Center(
-                child: Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator()),
-              );
-            }
-
-            final doc = _displayedDocuments[index];
-            return DocumentCard(
-              document: doc,
-              onFavoriteToggle: () => _fetchDocuments(),
-              dbHelper: widget.dbHelper,
+      child: ListView.builder(
+        controller: _scrollController,
+        itemCount: _documents.length + (_hasMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _documents.length) {
+            return const Center(
+              child: Padding(
+                padding: EdgeInsets.all(8.0),
+                child: CircularProgressIndicator(),
+              ),
             );
-          },
-        ),
+          }
+
+          final doc = _documents[index];
+          return DocumentCard(
+            document: doc,
+            onFavoriteToggle: () => _fetchDocuments(),
+            dbHelper: widget.dbHelper,
+          );
+        },
       ),
     );
   }

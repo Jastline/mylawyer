@@ -24,8 +24,10 @@ class DocumentCard extends StatelessWidget {
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(document.docNumber),
-            if (document.docDate != null) Text(document.docDate),
+            if (document.docNumber.isNotEmpty)
+              Text(document.docNumber),
+            if (document.docDate.isNotEmpty)
+              Text(document.formattedDate),
           ],
         ),
         trailing: IconButton(

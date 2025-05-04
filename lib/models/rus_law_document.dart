@@ -92,4 +92,15 @@ class RusLawDocument extends BaseModel {
       signedByID: signedByID ?? this.signedByID,
     );
   }
+  String get formattedDate {
+    try {
+      final date = DateTime.parse(docDate);
+      return '${date.day.toString().padLeft(2, '0')}.'
+          '${date.month.toString().padLeft(2, '0')}.'
+          '${date.year}';
+    } catch (e) {
+      return docDate; // Возвращаем как есть, если не удалось распарсить
+    }
+  }
+
 }

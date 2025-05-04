@@ -1,8 +1,6 @@
-// widgets/app_snackbar.dart
 import 'package:flutter/material.dart';
 
 class AppSnackBar {
-  // Методы для показа уведомлений остаются без изменений
   static void showSuccess(BuildContext context, String message) {
     _showSnackBar(
       context,
@@ -43,64 +41,134 @@ class AppSnackBar {
     );
   }
 
-  static void showLicenseAgreement(BuildContext context, {VoidCallback? onAccept}) {
-    final snackBar = SnackBar(
-      backgroundColor: Colors.blueGrey,
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
+  static Future<void> showLicenseAgreement({
+    required BuildContext context,
+    required VoidCallback onAccept,
+  }) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final iconColor = isDark ? Colors.lightBlue : Colors.blue;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 4,
+        child: SingleChildScrollView(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Заголовок с переносом текста
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 280),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Icon(Icons.verified_user, size: 28, color: iconColor),
+                      const SizedBox(width: 12),
+                      Flexible(
+                        child: Text(
+                          'Лицензионное соглашение',
+                          style: theme.textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Используя это приложение, вы соглашаетесь с условиями:',
+                  style: theme.textTheme.bodyLarge,
+                ),
+                const SizedBox(height: 16),
+                _buildAgreementPoint(
+                  Icons.gavel,
+                  'Мы не несем ответственности за точность информации',
+                  iconColor,
+                ),
+                _buildAgreementPoint(
+                  Icons.medical_services,
+                  'Приложение не заменяет профессиональную консультацию',
+                  iconColor,
+                ),
+                _buildAgreementPoint(
+                  Icons.warning,
+                  'Все данные предоставляются "как есть" без гарантий',
+                  iconColor,
+                ),
+                _buildAgreementPoint(
+                  Icons.security,
+                  'Вы используете приложение на свой страх и риск',
+                  iconColor,
+                ),
+                const SizedBox(height: 24),
+                // Кнопка (оставляем как было)
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: iconColor,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 2,
+                      shadowColor: iconColor.withValues(alpha: 0.4),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onAccept();
+                    },
+                    child: const Text(
+                      'ПРИНИМАЮ УСЛОВИЯ',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _buildAgreementPoint(IconData icon, String text, Color iconColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.warning_amber, color: Colors.white),
-              const SizedBox(width: 8),
-              const Text(
-                'Лицензионное соглашение',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+          Icon(icon, size: 22, color: iconColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 15,
+                height: 1.4,
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Используя это приложение, вы соглашаетесь с тем, что:\n'
-                '1. Мы не несем ответственности за точность информации\n'
-                '2. Приложение не заменяет профессиональную юридическую консультацию\n'
-                '3. Все данные предоставляются "как есть" без гарантий\n'
-                '4. Вы используете приложение на свой страх и риск\n'
-                '5. ДАШКА = КАКАША :)',
-            style: TextStyle(color: Colors.white),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: Colors.blueGrey,
-              ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                onAccept?.call();
-              },
-              child: const Text('Принимаю'),
             ),
           ),
         ],
       ),
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      duration: const Duration(days: 1),
-      padding: const EdgeInsets.all(16),
     );
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(snackBar);
   }
 
   static void _showSnackBar(
@@ -111,7 +179,6 @@ class AppSnackBar {
         required Duration duration,
         String actionLabel = 'OK',
       }) {
-    // Проверяем, что контекст все еще валиден
     if (!context.mounted) return;
 
     final messenger = ScaffoldMessenger.of(context);
@@ -125,10 +192,7 @@ class AppSnackBar {
             Icon(iconData, color: Colors.white),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                message,
-                style: const TextStyle(color: Colors.white),
-              ),
+              child: Text(message, style: const TextStyle(color: Colors.white)),
             ),
           ],
         ),
