@@ -22,30 +22,41 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
+  // Контроллеры
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+
+  // Состояние фильтрации
   int? _selectedDocTypeId;
   List<DocumentType> _docTypes = [];
-  List<RusLawDocument> _documents = [];
-  bool _isLoading = false;
-  bool _hasMore = true;
-  int _currentIndex = 0;
-  int _offset = 0;
-  final int _limit = 50;
-  int _totalFound = 0;
-
-  // Фильтрация по годам
   DateTime? _yearFrom;
   DateTime? _yearTo;
 
-  // Сортировка
+  // Состояние сортировки
   String _sortField = 'docDate';
   bool _sortAscending = false;
+
+  // Состояние документов
+  List<RusLawDocument> _documents = [];
+  List<int> _filteredDocumentIds = [];
+  int _currentBatchIndex = 0;
+  final int _batchSize = 50;
+  int _totalFound = 0;
+
+  // Состояние загрузки
+  bool _isLoading = false;
+  bool _hasMore = true;
+  bool _isFiltering = false;
+  int _filterProgress = 0;
+
+  // Навигация
+  int _currentIndex = 0;
+  bool _showScrollToTop = false;
 
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_scrollListener);
+    _initScrollListener();
     _loadInitialData();
   }
 
@@ -56,6 +67,27 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
+  // Инициализация слушателей
+  void _initScrollListener() {
+    _scrollController.addListener(() {
+      // Показать/скрыть кнопку "вверх"
+      if (_scrollController.offset > 400 && !_showScrollToTop) {
+        setState(() => _showScrollToTop = true);
+      } else if (_scrollController.offset <= 400 && _showScrollToTop) {
+        setState(() => _showScrollToTop = false);
+      }
+
+      // Подгрузка при достижении конца списка
+      if (_scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent &&
+          _hasMore &&
+          !_isLoading) {
+        _fetchDocuments(reset: false);
+      }
+    });
+  }
+
+  // Основные методы загрузки данных
   Future<void> _loadInitialData() async {
     await _fetchDocTypes();
     await _fetchDocuments();
@@ -64,82 +96,81 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _fetchDocTypes() async {
     try {
       final types = await widget.dbHelper.getDocumentTypes();
-      setState(() => _docTypes = types);
+      if (mounted) setState(() => _docTypes = types);
     } catch (e) {
       debugPrint('Ошибка загрузки типов документов: $e');
-      setState(() => _docTypes = []);
-      AppSnackBar.showError(context, 'Не удалось загрузить типы документов');
+      if (mounted) {
+        setState(() => _docTypes = []);
+        AppSnackBar.showError(context, 'Не удалось загрузить типы документов');
+      }
     }
   }
 
   Future<void> _fetchDocuments({bool reset = true}) async {
-    if (_isLoading) return;
+    if (_isLoading || _isFiltering) return;
 
-    setState(() {
-      _isLoading = true;
-      if (reset) {
-        _offset = 0;
-        _hasMore = true;
-      }
-    });
+    setState(() => _isLoading = true);
 
     try {
-      final result = await widget.dbHelper.searchDocuments(
-        query: _searchController.text.trim().isNotEmpty
-            ? _searchController.text.trim()
-            : null,
-        typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
-        dateFrom: _yearFrom,
-        dateTo: _yearTo,
-        sortField: _sortField,
-        sortAscending: _sortAscending,
-        limit: _limit,
-        offset: reset ? 0 : _offset,
+      if (reset) {
+        _filteredDocumentIds = await widget.dbHelper.getAllFilteredDocumentIds(
+          query: _searchController.text.trim().isNotEmpty
+              ? _searchController.text.trim()
+              : null,
+          typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
+          dateFrom: _yearFrom,
+          dateTo: _yearTo,
+          sortField: _sortField,
+          sortAscending: _sortAscending,
+        );
+
+        _currentBatchIndex = 0;
+        _totalFound = _filteredDocumentIds.length;
+      }
+
+      if (_currentBatchIndex >= _filteredDocumentIds.length) {
+        if (mounted) setState(() {
+          _hasMore = false;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final batchIds = _filteredDocumentIds
+          .skip(_currentBatchIndex)
+          .take(_batchSize)
+          .toList();
+
+      final batchDocuments = await Future.wait(
+          batchIds.map((id) => widget.dbHelper.getDocumentById(id))
       );
 
       if (!mounted) return;
 
-      final totalCount = await widget.dbHelper.getDocumentsCount(
-        query: _searchController.text.trim().isNotEmpty
-            ? _searchController.text.trim()
-            : null,
-        typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
-        dateFrom: _yearFrom,
-        dateTo: _yearTo,
-      );
-
       setState(() {
-        _isLoading = false;
         if (reset) {
-          _documents = result;
-          _totalFound = totalCount;
+          _documents = batchDocuments.whereType<RusLawDocument>().toList();
         } else {
-          _documents.addAll(result);
+          _documents.addAll(batchDocuments.whereType<RusLawDocument>());
         }
-        _offset = _documents.length;
-        _hasMore = result.length == _limit;
+        _currentBatchIndex += batchIds.length;
+        _hasMore = _currentBatchIndex < _filteredDocumentIds.length;
+        _isLoading = false;
       });
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _hasMore = false;
+        });
         AppSnackBar.showError(context, 'Ошибка при загрузке документов');
       }
       debugPrint('Ошибка загрузки документов: $e');
     }
   }
 
-  void _scrollListener() {
-    if (_scrollController.position.pixels ==
-        _scrollController.position.maxScrollExtent &&
-        _hasMore &&
-        !_isLoading) {
-      _fetchDocuments(reset: false);
-    }
-  }
-
-  void _onSearchChanged() {
-    _fetchDocuments();
-  }
+  // Методы фильтрации
+  void _onSearchChanged() => _fetchDocuments();
 
   void _onDocTypeSelected(int? typeId) {
     setState(() => _selectedDocTypeId = typeId);
@@ -156,15 +187,30 @@ class _MainScreenState extends State<MainScreen> {
       initialDate: initialDate ?? DateTime.now(),
       firstDate: firstDate,
       lastDate: lastDate,
+      initialEntryMode: DatePickerEntryMode.input,
+      helpText: isFrom ? 'Выберите начальный год' : 'Выберите конечный год',
+      fieldLabelText: isFrom ? 'Начальный год' : 'Конечный год',
+      fieldHintText: 'ГГГГ',
+      // Показываем только год
       initialDatePickerMode: DatePickerMode.year,
     );
 
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         if (isFrom) {
+          // Устанавливаем начало года
           _yearFrom = DateTime(picked.year, 1, 1);
+          // Если конечная дата меньше начальной, сбрасываем ее
+          if (_yearTo != null && _yearTo!.isBefore(_yearFrom!)) {
+            _yearTo = null;
+          }
         } else {
+          // Устанавливаем конец года
           _yearTo = DateTime(picked.year, 12, 31);
+          // Если начальная дата больше конечной, сбрасываем ее
+          if (_yearFrom != null && _yearFrom!.isAfter(_yearTo!)) {
+            _yearFrom = null;
+          }
         }
       });
       _fetchDocuments();
@@ -172,15 +218,16 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _clearYearFilter() {
-    setState(() {
+    if (mounted) setState(() {
       _yearFrom = null;
       _yearTo = null;
     });
     _fetchDocuments();
   }
 
+  // Методы сортировки
   void _changeSort(String field) {
-    setState(() {
+    if (mounted) setState(() {
       if (_sortField == field) {
         _sortAscending = !_sortAscending;
       } else {
@@ -191,6 +238,16 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
+  // Методы навигации
+  void _scrollToTop() {
+    _scrollController.animateTo(
+      0,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  // Построение UI
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,31 +255,30 @@ class _MainScreenState extends State<MainScreen> {
         title: Text(_currentIndex == 0 ? 'Поиск ($_totalFound)' : 'Избранное'),
         actions: [
           IconButton(
-            icon: Icon(
-              widget.isDarkTheme ? Icons.light_mode : Icons.dark_mode,
-              color: Theme.of(context).appBarTheme.iconTheme?.color,
-            ),
+            icon: Icon(widget.isDarkTheme ? Icons.light_mode : Icons.dark_mode),
             onPressed: () => widget.toggleTheme(!widget.isDarkTheme),
           ),
         ],
       ),
-      body: _currentIndex == 0 ? _buildSearchScreen() : FavoritesScreen(dbHelper: widget.dbHelper),
+      body: _currentIndex == 0 ? _buildSearchScreen()
+          : FavoritesScreen(dbHelper: widget.dbHelper),
+      floatingActionButton: _showScrollToTop
+          ? FloatingActionButton(
+        backgroundColor: Theme.of(context).colorScheme.secondary,
+        mini: true,
+        onPressed: _scrollToTop,
+        child: Icon(
+          Icons.arrow_upward,
+          color: Theme.of(context).colorScheme.onSecondary,
+        ),
+      )
+          : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
+        onTap: (index) => setState(() => _currentIndex = index),
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.search),
-            label: 'Поиск',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.star),
-            label: 'Закладки',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.search), label: 'Поиск'),
+          BottomNavigationBarItem(icon: Icon(Icons.star), label: 'Закладки'),
         ],
       ),
     );
@@ -231,18 +287,8 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildSearchScreen() {
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (_) => _onSearchChanged(),
-            decoration: const InputDecoration(
-              labelText: 'Поиск',
-              border: OutlineInputBorder(),
-              suffixIcon: Icon(Icons.search),
-            ),
-          ),
-        ),
+        _buildFilterProgressIndicator(),
+        _buildSearchField(),
         _buildTypeFilter(),
         _buildYearFilter(),
         _buildSortOptions(),
@@ -251,158 +297,163 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
+  Widget _buildFilterProgressIndicator() {
+    if (!_isFiltering) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        LinearProgressIndicator(
+          value: _filterProgress / 100,
+          backgroundColor: Colors.grey[300],
+          valueColor: AlwaysStoppedAnimation<Color>(
+            Theme.of(context).primaryColor,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Text(
+            'Фильтрация: $_filterProgress%',
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSearchField() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: TextField(
+        controller: _searchController,
+        onChanged: (_) => _onSearchChanged(),
+        decoration: const InputDecoration(
+          labelText: 'Поиск',
+          border: OutlineInputBorder(),
+          suffixIcon: Icon(Icons.search),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTypeFilter() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ChoiceChip(
-            label: const Text('Все типы'),
-            selected: _selectedDocTypeId == null,
-            onSelected: (bool selected) {
-              if (selected) _onDocTypeSelected(null);
-            },
-          ),
-          ..._docTypes.map((type) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: ChoiceChip(
-                label: Text(type.docType),
-                selected: _selectedDocTypeId == type.id,
-                onSelected: (bool selected) {
-                  if (selected) _onDocTypeSelected(type.id);
-                },
-              ),
-            );
-          }),
+          _buildTypeChip(null, 'Все типы'),
+          ..._docTypes.map((type) => _buildTypeChip(type.id, type.docType)),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTypeChip(int? id, String label) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: _selectedDocTypeId == id,
+        onSelected: (selected) {
+          if (selected) _onDocTypeSelected(id);
+        },
       ),
     );
   }
 
   Widget _buildYearFilter() {
-    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: Row(
         children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              icon: Icon(Icons.calendar_today, size: 16, color: textColor),
-              label: Text(
-                _yearFrom != null ? 'С ${_yearFrom!.year}' : 'С года',
-                style: TextStyle(color: textColor),
-              ),
-              onPressed: () => _selectYear(context, true),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _yearFrom != null
-                    ? Theme.of(context).primaryColor
-                    : textColor,
-              ),
-            ),
-          ),
+          _buildYearButton(true, textColor),
           const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton.icon(
-              icon: Icon(Icons.calendar_today, size: 16, color: textColor),
-              label: Text(
-                _yearTo != null ? 'По ${_yearTo!.year}' : 'По год',
-                style: TextStyle(color: textColor),
-              ),
-              onPressed: () => _selectYear(context, false),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: _yearTo != null
-                    ? Theme.of(context).primaryColor
-                    : textColor,
-              ),
-            ),
-          ),
+          _buildYearButton(false, textColor),
           if (_yearFrom != null || _yearTo != null)
             IconButton(
               icon: const Icon(Icons.clear),
               onPressed: _clearYearFilter,
-              tooltip: 'Сбросить фильтр по годам',
-              color: textColor,
+              tooltip: 'Сбросить фильтр',
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildYearButton(bool isFrom, Color? textColor) {
+    return Expanded(
+      child: OutlinedButton.icon(
+        icon: Icon(Icons.calendar_today, size: 16, color: textColor),
+        label: Text(
+          isFrom
+              ? _yearFrom != null
+              ? 'С ${_yearFrom!.year}'
+              : 'С года'
+              : _yearTo != null
+              ? 'По ${_yearTo!.year}'
+              : 'По год',
+          style: TextStyle(color: textColor),
+        ),
+        onPressed: () => _selectYear(context, isFrom),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: (isFrom ? _yearFrom : _yearTo) != null
+              ? Theme.of(context).primaryColor
+              : textColor,
+        ),
       ),
     );
   }
 
   Widget _buildSortOptions() {
-    final theme = Theme.of(context);
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
       child: Row(
         children: [
-          Text('Сортировка:', style: theme.textTheme.bodyMedium),
+          Text('Сортировка:', style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(width: 8),
-          _buildSortChip(
-            label: 'По названию',
-            field: 'title',
-            currentField: _sortField,
-            ascending: _sortAscending,
-          ),
+          _buildSortButton('По названию', 'title'),
           const SizedBox(width: 8),
-          _buildSortChip(
-            label: 'По дате',
-            field: 'docDate',
-            currentField: _sortField,
-            ascending: _sortAscending,
-          ),
+          _buildSortButton('По дате', 'docDate'),
         ],
       ),
     );
   }
 
-  Widget _buildSortChip({
-    required String label,
-    required String field,
-    required String currentField,
-    required bool ascending,
-  }) {
-    final isSelected = currentField == field;
-    final theme = Theme.of(context);
+  Widget _buildSortButton(String label, String field) {
+    final isActive = _sortField == field;
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return ChoiceChip(
-      label: Row(
+    return TextButton(
+      style: TextButton.styleFrom(
+        foregroundColor: isActive ? colorScheme.secondary : null,
+      ),
+      onPressed: () => _changeSort(field),
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(label),
-          if (isSelected)
+          if (isActive)
             Padding(
               padding: const EdgeInsets.only(left: 4),
               child: Icon(
-                ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
                 size: 16,
+                color: colorScheme.secondary,
               ),
             ),
         ],
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
-        if (selected) _changeSort(field);
-      },
-      selectedColor: theme.colorScheme.primary.withValues(alpha: 0.2),
-      labelStyle: theme.textTheme.bodyMedium?.copyWith(
-        color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
       ),
     );
   }
 
   Widget _buildDocumentsList() {
     if (_isLoading && _documents.isEmpty) {
-      return const Expanded(
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const Expanded(child: Center(child: CircularProgressIndicator()));
     }
 
     if (_documents.isEmpty && !_isLoading) {
-      return const Expanded(
-        child: Center(child: Text('Документы не найдены')),
-      );
+      return const Expanded(child: Center(child: Text('Документы не найдены')));
     }
 
     return Expanded(
@@ -411,11 +462,9 @@ class _MainScreenState extends State<MainScreen> {
         itemCount: _documents.length + (_hasMore ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= _documents.length) {
-            return const Center(
-              child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
-              ),
+            return const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Center(child: CircularProgressIndicator()),
             );
           }
 
