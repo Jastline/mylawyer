@@ -1,4 +1,3 @@
-// main_screen.dart
 import 'package:flutter/material.dart';
 import '../services/db_helper.dart';
 import 'document_card.dart';
@@ -35,6 +34,14 @@ class _MainScreenState extends State<MainScreen> {
   int _offset = 0;
   final int _limit = 50;
   int _totalFound = 0;
+
+  // Фильтрация по годам
+  DateTime? _yearFrom;
+  DateTime? _yearTo;
+
+  // Сортировка
+  String _sortField = 'docDate';
+  bool _sortAscending = false;
 
   @override
   void initState() {
@@ -73,8 +80,6 @@ class _MainScreenState extends State<MainScreen> {
       if (reset) {
         _offset = 0;
         _hasMore = true;
-        _documents.clear();
-        _displayedDocuments.clear();
       }
     });
 
@@ -82,37 +87,40 @@ class _MainScreenState extends State<MainScreen> {
       final result = await widget.dbHelper.searchDocuments(
         query: _searchController.text,
         typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
+        dateFrom: _yearFrom,
+        dateTo: _yearTo,
+        sortField: _sortField,
+        sortAscending: _sortAscending,
         limit: _limit,
-        offset: _offset,
+        offset: reset ? 0 : _offset,
       );
 
       if (!mounted) return;
 
-      int totalCount = _totalFound;
-      if (reset) {
-        totalCount = await widget.dbHelper.getDocumentsCount(
-          query: _searchController.text,
-          typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
-        );
-      }
+      final totalCount = await widget.dbHelper.getDocumentsCount(
+        query: _searchController.text,
+        typeIds: _selectedDocTypeId != null ? [_selectedDocTypeId!] : null,
+        dateFrom: _yearFrom,
+        dateTo: _yearTo,
+      );
 
       setState(() {
         _isLoading = false;
-        _documents.addAll(result);
+        if (reset) {
+          _documents = result;
+          _totalFound = totalCount;
+        } else {
+          _documents.addAll(result);
+        }
         _displayedDocuments = List.from(_documents);
-        _offset += _limit;
+        _offset = _documents.length;
         _hasMore = result.length == _limit;
-        _totalFound = totalCount;
 
-        if (reset && (_searchController.text.isNotEmpty || _selectedDocTypeId != null)) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) {
-              AppSnackBar.showQuickInfo(
-                context,
-                'Найдено документов: $_totalFound.',
-              );
-            }
-          });
+        if (reset) {
+          AppSnackBar.showQuickInfo(
+            context,
+            'Найдено документов: $_totalFound.',
+          );
         }
       });
     } catch (e) {
@@ -130,8 +138,24 @@ class _MainScreenState extends State<MainScreen> {
         _hasMore &&
         !_isLoading &&
         mounted) {
-      _fetchDocuments(reset: false);
+      _loadMoreDocuments();
     }
+  }
+
+  // Метод для подгрузки документов
+  Future<void> _loadMoreDocuments() async {
+    if (_isLoading || !_hasMore) return;
+
+    setState(() => _isLoading = true);
+
+    final newDocuments = _documents.skip(_offset).take(_limit).toList();
+
+    setState(() {
+      _displayedDocuments.addAll(newDocuments);
+      _offset += newDocuments.length;
+      _hasMore = _offset < _documents.length;
+      _isLoading = false;
+    });
   }
 
   void _onSearchChanged() {
@@ -141,6 +165,71 @@ class _MainScreenState extends State<MainScreen> {
   void _onDocTypeSelected(int? typeId) {
     setState(() => _selectedDocTypeId = typeId);
     _fetchDocuments();
+  }
+
+  Future<void> _selectYear(BuildContext context, bool isFrom) async {
+    final initialDate = isFrom ? _yearFrom : _yearTo;
+    final firstDate = DateTime(1900);
+    final lastDate = DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initialDate ?? DateTime.now(),
+      firstDate: firstDate,
+      lastDate: lastDate,
+      initialDatePickerMode: DatePickerMode.year,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: Theme.of(context).primaryColor,
+              onPrimary: Colors.white,
+              surface: Theme.of(context).scaffoldBackgroundColor,
+              onSurface: Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black,
+            ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.white, // Белый цвет для кнопок
+              ),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        if (isFrom) {
+          _yearFrom = DateTime(picked.year, 1, 1);
+        } else {
+          _yearTo = DateTime(picked.year, 12, 31);
+        }
+      });
+      _fetchDocuments();
+    }
+  }
+
+  void _clearYearFilter() {
+    setState(() {
+      _yearFrom = null;
+      _yearTo = null;
+    });
+    _fetchDocuments();
+  }
+
+  void _changeSort(String field) {
+    setState(() {
+      if (_sortField == field) {
+        // Если уже сортируем по этому полю, меняем направление
+        _sortAscending = !_sortAscending;
+      } else {
+        // Если новое поле сортировки, устанавливаем по возрастанию (можно изменить на false для убывания по умолчанию)
+        _sortField = field;
+        _sortAscending = true;
+      }
+      _fetchDocuments();
+    });
   }
 
   @override
@@ -196,6 +285,8 @@ class _MainScreenState extends State<MainScreen> {
           ),
         ),
         _buildTypeFilter(),
+        _buildYearFilter(),
+        _buildSortOptions(),
         _buildDocumentsList(),
       ],
     );
@@ -209,7 +300,9 @@ class _MainScreenState extends State<MainScreen> {
           ChoiceChip(
             label: const Text('Все'),
             selected: _selectedDocTypeId == null,
-            onSelected: (_) => _onDocTypeSelected(null),
+            onSelected: (bool selected) {
+              if (selected) _onDocTypeSelected(null);
+            },
           ),
           ..._docTypes.map((type) {
             return Padding(
@@ -217,10 +310,131 @@ class _MainScreenState extends State<MainScreen> {
               child: ChoiceChip(
                 label: Text(type.docType),
                 selected: _selectedDocTypeId == type.id,
-                onSelected: (_) => _onDocTypeSelected(type.id),
+                onSelected: (bool selected) {
+                  if (selected) _onDocTypeSelected(type.id);
+                },
               ),
             );
           }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildYearFilter() {
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: Icon(Icons.calendar_today, size: 16, color: textColor),
+              label: Text(
+                _yearFrom != null ? 'С ${_yearFrom!.year}' : 'С года',
+                style: TextStyle(color: textColor),
+              ),
+              onPressed: () => _selectYear(context, true),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _yearFrom != null
+                    ? Theme.of(context).primaryColor
+                    : textColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              icon: Icon(Icons.calendar_today, size: 16, color: textColor),
+              label: Text(
+                _yearTo != null ? 'По ${_yearTo!.year}' : 'По год',
+                style: TextStyle(color: textColor),
+              ),
+              onPressed: () => _selectYear(context, false),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _yearTo != null
+                    ? Theme.of(context).primaryColor
+                    : textColor,
+              ),
+            ),
+          ),
+          if (_yearFrom != null || _yearTo != null)
+            IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: _clearYearFilter,
+              tooltip: 'Сбросить фильтр по годам',
+              color: textColor,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSortOptions() {
+    final textStyle = Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Theme.of(context).colorScheme.onSurface,
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+      child: Row(
+        children: [
+          Text('Сортировка: ', style: textStyle),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: Row(
+              children: [
+                Text('По названию', style: textStyle),
+                if (_sortField == 'title')
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(scale: animation, child: child);
+                      },
+                      child: Icon(
+                        _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 16,
+                        key: ValueKey<bool>(_sortAscending),
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            selected: _sortField == 'title',
+            selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            onSelected: (bool selected) => _changeSort('title'),
+          ),
+          const SizedBox(width: 8),
+          ChoiceChip(
+            label: Row(
+              children: [
+                Text('По дате', style: textStyle),
+                if (_sortField == 'docDate')
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 200),
+                      transitionBuilder: (child, animation) {
+                        return ScaleTransition(scale: animation, child: child);
+                      },
+                      child: Icon(
+                        _sortAscending ? Icons.arrow_upward : Icons.arrow_downward,
+                        size: 16,
+                        key: ValueKey<bool>(_sortAscending),
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            selected: _sortField == 'docDate',
+            selectedColor: Theme.of(context).primaryColor.withValues(alpha: 0.2),
+            onSelected: (bool selected) => _changeSort('docDate'),
+          ),
         ],
       ),
     );
@@ -256,10 +470,11 @@ class _MainScreenState extends State<MainScreen> {
           itemCount: _displayedDocuments.length + (_hasMore ? 1 : 0),
           itemBuilder: (context, index) {
             if (index >= _displayedDocuments.length) {
-              return const Center(child: Padding(
-                padding: EdgeInsets.all(8.0),
-                child: CircularProgressIndicator(),
-              ));
+              return const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: CircularProgressIndicator()),
+              );
             }
 
             final doc = _displayedDocuments[index];

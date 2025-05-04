@@ -156,12 +156,13 @@ class DBHelper {
 
   // ======================== Методы поиска ========================
 
-  Future<int> getDocumentsCount({
+  Future<List<RusLawDocument>> searchAllDocuments({
     String? query,
     List<int>? typeIds,
+    DateTime? dateFrom,
+    DateTime? dateTo,
   }) async {
     final db = await database;
-
     final where = <String>[];
     final whereArgs = <dynamic>[];
 
@@ -181,50 +182,6 @@ class DBHelper {
       whereArgs.addAll(typeIds);
     }
 
-    final result = await db.rawQuery('''
-    SELECT COUNT(*) as count FROM rus_law_document
-    ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
-  ''', whereArgs);
-
-    return Sqflite.firstIntValue(result) ?? 0;
-  }
-
-  /// Полнотекстовый поиск по документам
-  Future<List<RusLawDocument>> searchDocuments({
-    String? query,
-    List<int>? typeIds,
-    List<int>? statusIds,
-    DateTime? dateFrom,
-    DateTime? dateTo,
-    bool? isPinned,
-    int limit = 50,
-    int offset = 0,
-  }) async {
-    final db = await database;
-    final where = <String>[];
-    final whereArgs = <dynamic>[];
-
-    if (query != null && query.isNotEmpty) {
-      where.add('''
-        (title LIKE ? OR docNumber LIKE ? OR EXISTS (
-          SELECT 1 FROM rus_law_text 
-          WHERE documentID = rus_law_document.ID 
-          AND text LIKE ?
-        ))
-      ''');
-      whereArgs.addAll(['%$query%', '%$query%', '%$query%']);
-    }
-
-    if (typeIds != null && typeIds.isNotEmpty) {
-      where.add('docTypeID IN (${List.filled(typeIds.length, '?').join(',')})');
-      whereArgs.addAll(typeIds);
-    }
-
-    if (statusIds != null && statusIds.isNotEmpty) {
-      where.add('statusID IN (${List.filled(statusIds.length, '?').join(',')})');
-      whereArgs.addAll(statusIds);
-    }
-
     if (dateFrom != null) {
       where.add('docDate >= ?');
       whereArgs.add(dateFrom.toIso8601String());
@@ -235,20 +192,135 @@ class DBHelper {
       whereArgs.add(dateTo.toIso8601String());
     }
 
-    if (isPinned != null) {
-      where.add('isPinned = ?');
-      whereArgs.add(isPinned ? 1 : 0);
+    final result = await db.query(
+      'rus_law_document',
+      where: where.isNotEmpty ? where.join(' AND ') : null,
+      whereArgs: whereArgs,
+    );
+
+    return result.map((e) => RusLawDocument.fromMap(e)).toList();
+  }
+
+  Future<int> getDocumentsCount({
+    String? query,
+    List<int>? typeIds,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    final db = await database;
+    final where = <String>[];
+    final whereArgs = <dynamic>[];
+
+    if (query != null && query.isNotEmpty) {
+      where.add('''
+      (title LIKE ? OR docNumber LIKE ? OR EXISTS (
+        SELECT 1 FROM rus_law_text 
+        WHERE documentID = rus_law_document.ID 
+        AND text LIKE ?
+      ))
+    ''');
+      whereArgs.addAll(['%$query%', '%$query%', '%$query%']);
+    }
+
+    if (typeIds != null && typeIds.isNotEmpty) {
+      where.add('docTypeID IN (${List.filled(typeIds.length, '?').join(',')})');
+      whereArgs.addAll(typeIds);
+    }
+
+    // Исправленная фильтрация по дате
+    if (dateFrom != null && dateTo != null) {
+      where.add('docDate BETWEEN ? AND ?');
+      whereArgs.addAll([dateFrom.toIso8601String(), dateTo.toIso8601String()]);
+    } else if (dateFrom != null) {
+      where.add('docDate >= ?');
+      whereArgs.add(dateFrom.toIso8601String());
+    } else if (dateTo != null) {
+      where.add('docDate <= ?');
+      whereArgs.add(dateTo.toIso8601String());
+    }
+
+    final result = await db.rawQuery('''
+    SELECT COUNT(*) as count FROM rus_law_document
+    ${where.isNotEmpty ? 'WHERE ${where.join(' AND ')}' : ''}
+  ''', whereArgs);
+
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+
+  /// Полнотекстовый поиск по документам
+  Future<List<RusLawDocument>> searchDocuments({
+    String? query,
+    List<int>? typeIds,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+    String sortField = 'docDate',
+    bool sortAscending = false,
+    int limit = 50,
+    int offset = 0,
+  }) async {
+    final db = await database;
+    final where = <String>[];
+    final whereArgs = <dynamic>[];
+
+    // Поиск по тексту
+    if (query?.isNotEmpty ?? false) {
+      where.add('''
+      (title LIKE ? OR docNumber LIKE ? OR EXISTS (
+        SELECT 1 FROM rus_law_text 
+        WHERE documentID = rus_law_document.ID 
+        AND text LIKE ?
+      ))
+    ''');
+      whereArgs.addAll(['%$query%', '%$query%', '%$query%']);
+    }
+
+    // Фильтр по типу
+    if (typeIds?.isNotEmpty ?? false) {
+      where.add('docTypeID IN (${List.filled(typeIds!.length, '?').join(',')})');
+      whereArgs.addAll(typeIds);
+    }
+
+    // Фильтр по дате
+    if (dateFrom != null || dateTo != null) {
+      final dateConditions = <String>[];
+
+      if (dateFrom != null) {
+        dateConditions.add('docDate >= ?');
+        whereArgs.add(dateFrom.toIso8601String());
+      }
+
+      if (dateTo != null) {
+        dateConditions.add('docDate <= ?');
+        whereArgs.add(dateTo.toIso8601String());
+      }
+
+      where.add(dateConditions.join(' AND '));
     }
 
     final result = await db.query(
       'rus_law_document',
       where: where.isNotEmpty ? where.join(' AND ') : null,
       whereArgs: whereArgs,
+      orderBy: _buildOrderByClause(sortField, sortAscending),
       limit: limit,
       offset: offset,
     );
 
-    return result.map((e) => RusLawDocument.fromMap(e)).toList();
+    return result.map(RusLawDocument.fromMap).toList();
+  }
+
+  String _buildOrderByClause(String sortField, bool sortAscending) {
+    final fieldName = sortField == 'title' ? 'title' : 'docDate';
+    final direction = sortAscending ? 'ASC' : 'DESC';
+
+    // Для NULL значений в дате - помещаем их в конец при сортировке по убыванию
+    // и в начало при сортировке по возрастанию
+    if (fieldName == 'docDate') {
+      return 'CASE WHEN $fieldName IS NULL THEN 1 ELSE 0 END, $fieldName $direction';
+    }
+
+    return '$fieldName $direction';
   }
 
   /// Поиск документов по ключевым словам
